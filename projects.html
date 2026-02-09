@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Sigma Alutech Project Portfolio - 29+ major projects including 5-star hotels, luxury villas, manufacturing plants, and institutional buildings.">
+  <title>Projects | Sigma Alutech</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Montserrat:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/pages.css">
+</head>
+<body>
+
+  <!-- Navigation -->
+  <nav class="nav scrolled" id="nav">
+    <div class="container nav__inner">
+      <a href="index.html" class="nav__logo">
+        <div class="nav__logo-text">SIGMA <span>ALUTECH</span></div>
+      </a>
+      <div class="nav__links">
+        <a href="index.html#about" class="nav__link">About</a>
+        <a href="products.html" class="nav__link">Products</a>
+        <a href="projects.html" class="nav__link active">Projects</a>
+        <a href="index.html#contact" class="nav__link">Contact</a>
+      </div>
+      <div class="nav__hamburger" id="hamburger" aria-label="Toggle menu">
+        <span></span><span></span><span></span>
+      </div>
+    </div>
+    <div class="nav__mobile-overlay" id="mobileOverlay"></div>
+    <div class="nav__mobile" id="mobileMenu">
+      <a href="index.html#about" class="nav__mobile-link">About</a>
+      <a href="products.html" class="nav__mobile-link">Products</a>
+      <a href="projects.html" class="nav__mobile-link">Projects</a>
+      <a href="index.html#contact" class="nav__mobile-link">Contact</a>
+    </div>
+  </nav>
+
+  <!-- Page Header -->
+  <header class="page-header">
+    <div class="container">
+      <span class="section-label">Our Portfolio</span>
+      <h1 class="page-header__title">Projects That Define Us</h1>
+      <p class="page-header__subtitle">From five-star hotels to luxury villas and industrial facilities — over 25 years of excellence across 29+ landmark projects.</p>
+    </div>
+  </header>
+
+  <!-- Project Showcase -->
+  <section class="section">
+    <div class="container">
+      <!-- Category Filters -->
+      <div class="filters" id="projectFilters">
+        <!-- Dynamically populated from JSON -->
+      </div>
+
+      <!-- Projects Grid -->
+      <div class="projects-grid" id="projectsGrid">
+        <!-- Dynamically populated from JSON -->
+      </div>
+
+      <div class="no-results" id="noResults" style="display:none;">
+        <div class="no-results__icon">&#128269;</div>
+        <p>No projects found in this category.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Project Modal -->
+  <div class="modal-backdrop" id="projectModalBackdrop"></div>
+  <div class="modal" id="projectModal">
+    <button class="modal__close" id="projectModalClose">&times;</button>
+    <div class="modal__image-container">
+      <img id="projModalMainImage" src="" alt="">
+    </div>
+    <div class="modal__gallery" id="projModalGallery"></div>
+    <div class="modal__body">
+      <div class="modal__tags" id="projModalTags"></div>
+      <h3 class="modal__title" id="projModalTitle"></h3>
+      <p class="modal__description" id="projModalDescription"></p>
+      <div class="modal__details" id="projModalDetails"></div>
+      <div id="projModalVideoContainer"></div>
+    </div>
+  </div>
+
+  <!-- Lightbox -->
+  <div class="lightbox" id="lightbox">
+    <button class="lightbox__close" id="lightboxClose">&times;</button>
+    <button class="lightbox__nav lightbox__prev" id="lightboxPrev">&#10094;</button>
+    <img class="lightbox__image" id="lightboxImage" src="" alt="">
+    <button class="lightbox__nav lightbox__next" id="lightboxNext">&#10095;</button>
+    <div class="lightbox__counter" id="lightboxCounter"></div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer__grid">
+        <div>
+          <div class="nav__logo-text" style="font-size: 1.5rem; margin-bottom: var(--space-sm);">SIGMA <span style="color: var(--gold-primary);">ALUTECH</span></div>
+          <p class="footer__brand-text">Premium aluminium fabrication solutions. Authorized Technal partner delivering French engineering excellence in India since 2000.</p>
+        </div>
+        <div>
+          <h4 class="footer__heading">Quick Links</h4>
+          <a href="index.html#about" class="footer__link">About Us</a>
+          <a href="products.html" class="footer__link">Products</a>
+          <a href="projects.html" class="footer__link">Projects</a>
+          <a href="index.html#contact" class="footer__link">Contact</a>
+        </div>
+        <div>
+          <h4 class="footer__heading">Products</h4>
+          <a href="products.html#windows" class="footer__link">Windows</a>
+          <a href="products.html#doors" class="footer__link">Doors</a>
+          <a href="products.html#sliding" class="footer__link">Sliding Systems</a>
+          <a href="products.html#facades" class="footer__link">Facades</a>
+          <a href="products.html#balustrades" class="footer__link">Balustrades</a>
+          <a href="products.html#handles" class="footer__link">Handles</a>
+        </div>
+      </div>
+      <div class="footer__bottom">
+        <span class="footer__copyright">&copy; 2025 Sigma Alutech. All rights reserved.</span>
+        <span class="footer__formerly">Formerly Ravi Enterprises &bull; Established 2000</span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="js/main.js"></script>
+  <script src="js/projects.js"></script>
+</body>
+</html>

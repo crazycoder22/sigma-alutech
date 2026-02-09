@@ -1,0 +1,421 @@
+{
+  "categories": [
+    {
+      "id": "windows",
+      "name": "Windows",
+      "description": "Aluminium window systems combining elegance with superior thermal, acoustic, and water insulation.",
+      "products": [
+        {
+          "id": "casement-window-fy65",
+          "name": "FY 65 Casement Window",
+          "series": "FY 65",
+          "topology": "casement",
+          "tagline": "Outward opening window with slim sightlines",
+          "description": "The FY 65 series offers exceptional thermal and acoustic performance with a sleek aluminium profile. Ideal for residential and commercial applications requiring superior insulation.",
+          "features": [
+            "Thermally broken profile",
+            "Sound insulation up to 42 dB",
+            "Water tightness Class E1050",
+            "Air permeability Class 4",
+            "Multiple opening configurations"
+          ],
+          "specifications": {
+            "Profile Depth": "65mm",
+            "Infill Thickness": "4-28mm",
+            "Max Width": "1400mm",
+            "Max Height": "2400mm"
+          },
+          "finishes": ["Anodized", "Powder Coated", "Wood Finish"],
+          "images": ["images/products/windows/placeholder.svg"],
+          "video": null,
+          "featured": true
+        },
+        {
+          "id": "tilt-turn-fy65",
+          "name": "FY 65 Tilt & Turn Window",
+          "series": "FY 65",
+          "topology": "tilt-turn",
+          "tagline": "Dual-action window for ventilation and easy cleaning",
+          "description": "The FY 65 Tilt & Turn offers two opening modes — tilt inward from the top for ventilation, or turn inward like a door for full opening. Perfect for high-rise buildings and hard-to-reach locations.",
+          "features": [
+            "Dual opening mechanism",
+            "Enhanced security with multi-point locking",
+            "Superior weather sealing",
+            "Easy cleaning from inside",
+            "Child-safe tilt mode"
+          ],
+          "specifications": {
+            "Profile Depth": "65mm",
+            "Infill Thickness": "4-28mm",
+            "Max Width": "1200mm",
+            "Max Height": "2200mm"
+          },
+          "finishes": ["Anodized", "Powder Coated", "Wood Finish"],
+          "images": ["images/products/windows/tilt-turn-fy65.jpg"],
+          "video": "https://www.youtube.com/embed/tu9WlspEjo0",
+          "featured": false
+        },
+        {
+          "id": "fixed-window-fy55",
+          "name": "FY 55 Fixed Window",
+          "series": "FY 55",
+          "topology": "fixed",
+          "tagline": "Non-opening window for maximum light and views",
+          "description": "The FY 55 fixed window provides maximum glass area with minimal frame visibility, designed for panoramic views and flood of natural light.",
+          "features": [
+            "Maximum glass area",
+            "Slim profile for unobstructed views",
+            "Excellent thermal insulation",
+            "Can be combined with operable windows"
+          ],
+          "specifications": {
+            "Profile Depth": "55mm",
+            "Infill Thickness": "4-24mm",
+            "Max Width": "2000mm",
+            "Max Height": "3000mm"
+          },
+          "finishes": ["Anodized", "Powder Coated", "Wood Finish"],
+          "images": ["images/products/windows/placeholder.svg"],
+          "video": null,
+          "featured": false
+        },
+        {
+          "id": "louver-window",
+          "name": "Aluminium Louver Window",
+          "series": "Louver Series",
+          "topology": "louver",
+          "tagline": "Adjustable ventilation with rain protection",
+          "description": "Aluminium louver windows provide controlled ventilation while preventing rain ingress. Ideal for utility areas, stairwells, and spaces requiring constant airflow.",
+          "features": [
+            "Adjustable blade angle",
+            "Rain protection even when open",
+            "Available in fixed and operable versions",
+            "Mosquito mesh integration"
+          ],
+          "specifications": {
+            "Blade Width": "100mm",
+            "Infill Thickness": "4-6mm glass blades",
+            "Max Width": "1200mm",
+            "Max Height": "1800mm"
+          },
+          "finishes": ["Anodized", "Powder Coated"],
+          "images": ["images/products/windows/placeholder.svg"],
+          "video": null,
+          "featured": false
+        }
+      ]
+    },
+    {
+      "id": "doors",
+      "name": "Doors",
+      "description": "Aluminium door systems including entrance, pivot, and folding doors for every application.",
+      "products": [
+        {
+          "id": "casement-door-fy65",
+          "name": "FY 65 Casement Door",
+          "series": "FY 65",
+          "topology": "casement",
+          "tagline": "Classic swing door with superior insulation",
+          "description": "The FY 65 casement door combines elegant design with outstanding thermal and acoustic performance. Available in single or double leaf configurations for residential and commercial entrances.",
+          "features": [
+            "Single or double leaf options",
+            "Multi-point locking system",
+            "Flush or rebated threshold",
+            "Panic hardware compatible",
+            "ADA compliant options"
+          ],
+          "specifications": {
+            "Profile Depth": "65mm",
+            "Infill Thickness": "4-40mm",
+            "Max Width (single)": "1200mm",
+            "Max Height": "2800mm"
+          },
+          "finishes": ["Anodized", "Powder Coated", "Wood Finish"],
+          "images": ["images/products/doors/placeholder.svg"],
+          "video": null,
+          "featured": true
+        },
+        {
+          "id": "pivot-door",
+          "name": "Pivot Door System",
+          "series": "Premium Series",
+          "topology": "pivot",
+          "tagline": "Statement entrance with center-pivot mechanism",
+          "description": "Create a grand entrance with our pivot door system. The center-pivot mechanism allows for oversized doors that make a bold architectural statement while maintaining smooth operation.",
+          "features": [
+            "Center or offset pivot options",
+            "Supports large door panels",
+            "Floor spring or concealed closer",
+            "Dramatic architectural impact",
+            "Smooth silent operation"
+          ],
+          "specifications": {
+            "Profile Depth": "75mm",
+            "Infill Thickness": "6-40mm",
+            "Max Width": "1500mm",
+            "Max Height": "3500mm",
+            "Max Weight": "250 kg"
+          },
+          "finishes": ["Anodized", "Powder Coated", "Wood Finish"],
+          "images": ["images/products/doors/placeholder.svg"],
+          "video": null,
+          "featured": true
+        },
+        {
+          "id": "sliding-folding-door",
+          "name": "Sliding & Folding Door",
+          "series": "FY 75",
+          "topology": "sliding-folding",
+          "tagline": "Maximum opening for seamless indoor-outdoor living",
+          "description": "The sliding & folding door system folds away neatly to one side, creating an unobstructed opening that seamlessly connects indoor and outdoor spaces.",
+          "features": [
+            "Up to 7 panels per track",
+            "Folds flat to one or both sides",
+            "Low threshold option",
+            "Multi-point locking",
+            "Screen door integration"
+          ],
+          "specifications": {
+            "Profile Depth": "75mm",
+            "Infill Thickness": "6-28mm",
+            "Max Panel Width": "1000mm",
+            "Max Height": "2800mm"
+          },
+          "finishes": ["Anodized", "Powder Coated", "Wood Finish"],
+          "images": ["images/products/doors/placeholder.svg"],
+          "video": null,
+          "featured": false
+        }
+      ]
+    },
+    {
+      "id": "sliding",
+      "name": "Sliding Systems",
+      "description": "Space-saving sliding solutions for residential and commercial applications.",
+      "products": [
+        {
+          "id": "sliding-window-gy55",
+          "name": "GY 55 Sliding Window",
+          "series": "GY 55",
+          "topology": "sliding",
+          "tagline": "Smooth gliding window for space efficiency",
+          "description": "The GY 55 sliding window system offers effortless operation with smooth-running rollers. Ideal where swing-out clearance is limited, providing excellent ventilation and views.",
+          "features": [
+            "Smooth roller mechanism",
+            "Multi-track options (2, 3, or 4 track)",
+            "Mosquito mesh track integration",
+            "Crescent lock security",
+            "Space-efficient operation"
+          ],
+          "specifications": {
+            "Profile Depth": "55mm",
+            "Infill Thickness": "4-12mm",
+            "Max Panel Width": "1500mm",
+            "Max Height": "2400mm"
+          },
+          "finishes": ["Anodized", "Powder Coated", "Wood Finish"],
+          "images": ["images/products/sliding/placeholder.svg"],
+          "video": null,
+          "featured": true
+        },
+        {
+          "id": "lift-slide-gy175",
+          "name": "GY 175 Lift & Slide Door",
+          "series": "GY 175",
+          "topology": "lift-slide",
+          "tagline": "Effortless operation for large openings",
+          "description": "The GY 175 lift & slide system handles large, heavy panels with ease. The lift mechanism raises the panel off its seals for smooth sliding, then drops it back down for an airtight seal.",
+          "features": [
+            "Handles panels up to 400 kg",
+            "Airtight seal when closed",
+            "Slim interlock for maximum glass area",
+            "Multi-point locking system",
+            "Motorization ready"
+          ],
+          "specifications": {
+            "Profile Depth": "175mm",
+            "Infill Thickness": "6-40mm",
+            "Max Panel Width": "3000mm",
+            "Max Height": "3200mm",
+            "Max Weight": "400 kg per panel"
+          },
+          "finishes": ["Anodized", "Powder Coated", "Wood Finish"],
+          "images": ["images/products/sliding/placeholder.svg"],
+          "video": null,
+          "featured": false
+        }
+      ]
+    },
+    {
+      "id": "facades",
+      "name": "Facades & Curtain Walls",
+      "description": "Structural glazing and curtain wall systems for commercial and high-rise applications.",
+      "products": [
+        {
+          "id": "stick-curtain-wall",
+          "name": "Stick Curtain Wall System",
+          "series": "MX Series",
+          "topology": "curtain-wall",
+          "tagline": "Versatile facade system for any building envelope",
+          "description": "The MX stick curtain wall system is assembled on-site from aluminium mullions and transoms, creating a continuous building envelope. Suitable for both new construction and renovation projects.",
+          "features": [
+            "On-site assembly flexibility",
+            "Pressure-equalized drainage",
+            "Thermal break technology",
+            "Compatible with operable windows",
+            "Structural silicone glazing option"
+          ],
+          "specifications": {
+            "Profile Depth": "50-65mm",
+            "Infill Thickness": "6-40mm",
+            "Max Span": "Project specific",
+            "Wind Load": "Up to 3000 Pa"
+          },
+          "finishes": ["Anodized", "Powder Coated"],
+          "images": ["images/products/facades/placeholder.svg"],
+          "video": null,
+          "featured": true
+        },
+        {
+          "id": "structural-glazing",
+          "name": "Structural Glazing System",
+          "series": "SG Series",
+          "topology": "structural-glazing",
+          "tagline": "Seamless glass facade with hidden framing",
+          "description": "Structural glazing creates a smooth, uninterrupted glass surface on the building exterior by bonding glass to the aluminium frame with structural silicone, hiding all framing from view.",
+          "features": [
+            "Frameless exterior appearance",
+            "Structural silicone bonding",
+            "Excellent weather performance",
+            "Modern architectural aesthetic",
+            "Combined with ventilation units"
+          ],
+          "specifications": {
+            "Profile Depth": "65mm",
+            "Infill Thickness": "6-32mm",
+            "Max Panel Size": "2400 x 3600mm",
+            "Wind Load": "Up to 4000 Pa"
+          },
+          "finishes": ["Anodized", "Powder Coated"],
+          "images": ["images/products/facades/placeholder.svg"],
+          "video": null,
+          "featured": false
+        }
+      ]
+    },
+    {
+      "id": "balustrades",
+      "name": "Balustrades & Railings",
+      "description": "Glass and aluminium railing systems for balconies, terraces, and staircases.",
+      "products": [
+        {
+          "id": "glass-railing",
+          "name": "Frameless Glass Railing",
+          "series": "Balustrade Series",
+          "topology": "railing",
+          "tagline": "Unobstructed views with maximum safety",
+          "description": "Frameless glass railings provide safety without compromising views. The aluminium base channel securely holds toughened or laminated glass panels for balconies, terraces, and pool areas.",
+          "features": [
+            "Toughened or laminated glass",
+            "Concealed aluminium base channel",
+            "Top handrail options",
+            "Meets safety load standards",
+            "Suitable for indoor and outdoor use"
+          ],
+          "specifications": {
+            "Glass Thickness": "12-21.52mm laminated",
+            "Max Height": "1200mm",
+            "Max Span": "1500mm between posts",
+            "Load Rating": "0.75 kN/m horizontal"
+          },
+          "finishes": ["Anodized", "Powder Coated"],
+          "images": ["images/products/balustrades/placeholder.svg"],
+          "video": null,
+          "featured": true
+        },
+        {
+          "id": "post-railing",
+          "name": "Post & Glass Railing",
+          "series": "Balustrade Series",
+          "topology": "railing",
+          "tagline": "Elegant post system with glass infill panels",
+          "description": "The post and glass railing system combines aluminium posts with glass infill panels, offering a versatile solution for staircases, balconies, and mezzanines.",
+          "features": [
+            "Round or square post options",
+            "Glass or bar infill",
+            "Adjustable post brackets",
+            "Side or top mount installation",
+            "Handrail continuity system"
+          ],
+          "specifications": {
+            "Post Size": "40x40mm or 50mm round",
+            "Glass Thickness": "8-12mm toughened",
+            "Max Height": "1100mm",
+            "Max Post Spacing": "1500mm"
+          },
+          "finishes": ["Anodized", "Powder Coated"],
+          "images": ["images/products/balustrades/placeholder.svg"],
+          "video": null,
+          "featured": false
+        }
+      ]
+    },
+    {
+      "id": "handles",
+      "name": "Handles & Hardware",
+      "description": "Exclusive collection of handles, locks, and hardware accessories for aluminium systems.",
+      "products": [
+        {
+          "id": "premium-handle-collection",
+          "name": "Premium Handle Collection",
+          "series": "Designer Series",
+          "topology": "hardware",
+          "tagline": "Refined aesthetics for every window and door",
+          "description": "Our premium handle collection features ergonomically designed handles available in a range of finishes to complement any interior style. Compatible with all Technal window and door systems.",
+          "features": [
+            "Ergonomic design",
+            "Multiple finish options",
+            "Key-locking variants available",
+            "Compatible with all Technal systems",
+            "Durable construction"
+          ],
+          "specifications": {
+            "Material": "Aluminium alloy",
+            "Spindle Size": "7mm square",
+            "Screw Centres": "43mm standard",
+            "Available Finishes": "Silver, Black, White, Gold, Bronze"
+          },
+          "finishes": ["Silver", "Black", "White", "Gold", "Bronze"],
+          "images": ["images/products/handles/placeholder.svg"],
+          "video": null,
+          "featured": false
+        },
+        {
+          "id": "multipoint-lock",
+          "name": "Multi-Point Locking System",
+          "series": "Security Series",
+          "topology": "hardware",
+          "tagline": "Enhanced security with multiple locking points",
+          "description": "Multi-point locking systems engage at multiple points along the door or window frame, providing superior security and weather sealing compared to single-point locks.",
+          "features": [
+            "3 to 5 locking points",
+            "Anti-drill and anti-pick cylinders",
+            "Key-operated or thumbturn options",
+            "Panic bar compatible",
+            "Corrosion-resistant mechanism"
+          ],
+          "specifications": {
+            "Lock Points": "3 to 5 points",
+            "Cylinder Type": "Euro profile",
+            "Backset": "35mm or 45mm",
+            "Faceplate": "16mm x 2200mm"
+          },
+          "finishes": ["Silver", "Black"],
+          "images": ["images/products/handles/placeholder.svg"],
+          "video": null,
+          "featured": false
+        }
+      ]
+    }
+  ]
+}

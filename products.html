@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Sigma Alutech Products - Premium Technal aluminium windows, doors, sliding systems, facades, balustrades and hardware.">
+  <title>Products | Sigma Alutech</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Montserrat:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/pages.css">
+</head>
+<body>
+
+  <!-- Navigation -->
+  <nav class="nav scrolled" id="nav">
+    <div class="container nav__inner">
+      <a href="index.html" class="nav__logo">
+        <div class="nav__logo-text">SIGMA <span>ALUTECH</span></div>
+      </a>
+      <div class="nav__links">
+        <a href="index.html#about" class="nav__link">About</a>
+        <a href="products.html" class="nav__link active">Products</a>
+        <a href="projects.html" class="nav__link">Projects</a>
+        <a href="index.html#contact" class="nav__link">Contact</a>
+      </div>
+      <div class="nav__hamburger" id="hamburger" aria-label="Toggle menu">
+        <span></span><span></span><span></span>
+      </div>
+    </div>
+    <div class="nav__mobile-overlay" id="mobileOverlay"></div>
+    <div class="nav__mobile" id="mobileMenu">
+      <a href="index.html#about" class="nav__mobile-link">About</a>
+      <a href="products.html" class="nav__mobile-link">Products</a>
+      <a href="projects.html" class="nav__mobile-link">Projects</a>
+      <a href="index.html#contact" class="nav__mobile-link">Contact</a>
+    </div>
+  </nav>
+
+  <!-- Page Header -->
+  <header class="page-header">
+    <div class="container">
+      <span class="section-label">Our Products</span>
+      <h1 class="page-header__title">Premium Aluminium Systems</h1>
+      <p class="page-header__subtitle">A comprehensive range of Technal-certified aluminium solutions. From windows and doors to facades and balustrades — engineered for performance and beauty.</p>
+    </div>
+  </header>
+
+  <!-- Product Catalog -->
+  <section class="section">
+    <div class="container">
+      <!-- Category Filters -->
+      <div class="filters" id="productFilters">
+        <button class="filter-btn active" data-category="all">All Products</button>
+        <!-- Dynamically populated from JSON -->
+      </div>
+
+      <!-- Products Grid -->
+      <div class="products-grid" id="productsGrid">
+        <!-- Dynamically populated from JSON -->
+      </div>
+
+      <div class="no-results" id="noResults" style="display:none;">
+        <div class="no-results__icon">&#128269;</div>
+        <p>No products found in this category.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Product Modal -->
+  <div class="modal-backdrop" id="productModalBackdrop"></div>
+  <div class="modal" id="productModal">
+    <button class="modal__close" id="productModalClose">&times;</button>
+    <div class="modal__image-container">
+      <img id="modalMainImage" src="" alt="">
+    </div>
+    <div class="modal__gallery" id="modalGallery"></div>
+    <div class="modal__body">
+      <div class="modal__tags" id="modalTags"></div>
+      <h3 class="modal__title" id="modalTitle"></h3>
+      <p class="modal__description" id="modalDescription"></p>
+
+      <!-- Features -->
+      <h4 style="margin-bottom: var(--space-sm); color: var(--gold-primary); font-size: var(--fs-small); text-transform: uppercase; letter-spacing: var(--ls-wider);">Key Features</h4>
+      <ul class="feature-list" id="modalFeatures"></ul>
+
+      <!-- Specifications -->
+      <h4 style="margin-bottom: var(--space-sm); color: var(--gold-primary); font-size: var(--fs-small); text-transform: uppercase; letter-spacing: var(--ls-wider);">Specifications</h4>
+      <table class="specs-table" id="modalSpecs"></table>
+
+      <!-- Finishes -->
+      <h4 style="margin-top: var(--space-lg); margin-bottom: var(--space-sm); color: var(--gold-primary); font-size: var(--fs-small); text-transform: uppercase; letter-spacing: var(--ls-wider);">Available Finishes</h4>
+      <div class="finishes" id="modalFinishes"></div>
+
+      <!-- Video -->
+      <div id="modalVideoContainer"></div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer__grid">
+        <div>
+          <div class="nav__logo-text" style="font-size: 1.5rem; margin-bottom: var(--space-sm);">SIGMA <span style="color: var(--gold-primary);">ALUTECH</span></div>
+          <p class="footer__brand-text">Premium aluminium fabrication solutions. Authorized Technal partner delivering French engineering excellence in India since 2000.</p>
+        </div>
+        <div>
+          <h4 class="footer__heading">Quick Links</h4>
+          <a href="index.html#about" class="footer__link">About Us</a>
+          <a href="products.html" class="footer__link">Products</a>
+          <a href="projects.html" class="footer__link">Projects</a>
+          <a href="index.html#contact" class="footer__link">Contact</a>
+        </div>
+        <div>
+          <h4 class="footer__heading">Products</h4>
+          <a href="products.html#windows" class="footer__link">Windows</a>
+          <a href="products.html#doors" class="footer__link">Doors</a>
+          <a href="products.html#sliding" class="footer__link">Sliding Systems</a>
+          <a href="products.html#facades" class="footer__link">Facades</a>
+          <a href="products.html#balustrades" class="footer__link">Balustrades</a>
+          <a href="products.html#handles" class="footer__link">Handles</a>
+        </div>
+      </div>
+      <div class="footer__bottom">
+        <span class="footer__copyright">&copy; 2025 Sigma Alutech. All rights reserved.</span>
+        <span class="footer__formerly">Formerly Ravi Enterprises &bull; Established 2000</span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="js/main.js"></script>
+  <script src="js/products.js"></script>
+</body>
+</html>

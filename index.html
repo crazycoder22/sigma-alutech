@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Sigma Alutech - Premium Aluminium Fabrication. Authorized Technal partner in Bangalore offering doors, windows, facades, and curtain wall systems since 2000.">
+  <title>Sigma Alutech | Premium Aluminium Fabrication | Bangalore</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Montserrat:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/pages.css">
+</head>
+<body>
+
+  <!-- ========== NAVIGATION ========== -->
+  <nav class="nav" id="nav">
+    <div class="container nav__inner">
+      <a href="index.html" class="nav__logo">
+        <div class="nav__logo-text">SIGMA <span>ALUTECH</span></div>
+      </a>
+
+      <div class="nav__links">
+        <a href="#about" class="nav__link">About</a>
+        <a href="products.html" class="nav__link">Products</a>
+        <a href="projects.html" class="nav__link">Projects</a>
+        <a href="#contact" class="nav__link">Contact</a>
+      </div>
+
+      <div class="nav__hamburger" id="hamburger" aria-label="Toggle menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+    </div>
+
+    <!-- Mobile overlay -->
+    <div class="nav__mobile-overlay" id="mobileOverlay"></div>
+
+    <!-- Mobile menu -->
+    <div class="nav__mobile" id="mobileMenu">
+      <a href="#about" class="nav__mobile-link">About</a>
+      <a href="products.html" class="nav__mobile-link">Products</a>
+      <a href="projects.html" class="nav__mobile-link">Projects</a>
+      <a href="#contact" class="nav__mobile-link">Contact</a>
+    </div>
+  </nav>
+
+
+  <!-- ========== HERO ========== -->
+  <section class="hero" id="hero">
+    <div class="hero__slider">
+      <div class="hero__slide active" style="background-image: url('images/hero/hero-1.svg'); background-color: #1a1a1a;"></div>
+      <div class="hero__slide" style="background-image: url('images/hero/hero-2.svg'); background-color: #141414;"></div>
+      <div class="hero__slide" style="background-image: url('images/hero/hero-3.svg'); background-color: #111111;"></div>
+    </div>
+    <div class="hero__overlay"></div>
+
+    <div class="hero__content">
+      <div class="hero__partner">
+        <span class="hero__partner-line"></span>
+        Authorized Technal Partner
+        <span class="hero__partner-line"></span>
+      </div>
+      <h1 class="hero__title">Sigma Alutech</h1>
+      <p class="hero__tagline">Premium aluminium fabrication solutions for residential, commercial, and industrial spaces. Delivering excellence in Bangalore since 2000.</p>
+      <div class="hero__cta">
+        <a href="products.html" class="btn btn--primary">Explore Products</a>
+        <a href="projects.html" class="btn btn--outline">View Projects</a>
+      </div>
+    </div>
+
+    <div class="hero__scroll-indicator">
+      <span>Scroll</span>
+      <svg width="16" height="24" viewBox="0 0 16 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M8 4v16M8 20l-4-4M8 20l4-4"/>
+      </svg>
+    </div>
+  </section>
+
+
+  <!-- ========== ABOUT ========== -->
+  <section class="section" id="about">
+    <div class="container">
+      <div class="split-section">
+        <div class="about__image-container reveal">
+          <img src="images/hero/hero-1.svg" alt="Sigma Alutech aluminium fabrication project"
+               onerror="this.style.background='var(--bg-card)'; this.style.minHeight='300px';">
+          <div class="about__image-accent"></div>
+        </div>
+
+        <div class="reveal reveal-delay-1">
+          <span class="section-label">About Us</span>
+          <h2 class="section-title">Crafting Precision in Aluminium Since 2000</h2>
+          <p class="about__text">
+            Sigma Alutech is a premier aluminium fabrication firm and an authorized franchisee of Hydro BS India Private Limited, representing the world-renowned Technal brand from France. With over two decades of expertise, we deliver end-to-end solutions from topology design to product installation.
+          </p>
+          <p class="about__text">
+            Led by Prajwal N (IIM-Trichy) and supported by Mr. Nagaraja M, our team of 30+ skilled technicians has successfully executed projects spanning luxury hotels, high-rise apartments, manufacturing plants, and institutional buildings across South India.
+          </p>
+
+          <div class="about__partner-note">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--gold-primary)" stroke-width="1.5">
+              <path d="M9 12l2 2 4-4"/>
+              <circle cx="12" cy="12" r="10"/>
+            </svg>
+            <p>Authorized partner of <strong>Technal by Hydro</strong> &mdash; the world's largest extruders of aluminium, bringing French engineering excellence to India.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats mt-2xl reveal">
+        <div class="stat">
+          <div class="stat__number">25+</div>
+          <div class="stat__label">Years of Experience</div>
+        </div>
+        <div class="stat">
+          <div class="stat__number">30+</div>
+          <div class="stat__label">Skilled Technicians</div>
+        </div>
+        <div class="stat">
+          <div class="stat__number">29</div>
+          <div class="stat__label">Major Projects</div>
+        </div>
+        <div class="stat">
+          <div class="stat__number">100+</div>
+          <div class="stat__label">Color Options</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ========== PRODUCT CATEGORIES ========== -->
+  <section class="section section--alt" id="products">
+    <div class="container">
+      <div class="section-header reveal">
+        <span class="section-label">Our Products</span>
+        <h2 class="section-title">Premium Aluminium Systems</h2>
+        <p class="section-subtitle">A comprehensive range of Technal-certified aluminium solutions designed for superior performance, aesthetics, and durability.</p>
+      </div>
+
+      <div class="grid-3" id="categoryGrid">
+        <!-- Windows -->
+        <a href="products.html#windows" class="category-card reveal reveal-delay-1">
+          <div class="category-card__image" style="background: linear-gradient(135deg, #1a1a2e, #2a2a3e); width:100%; height:100%;"></div>
+          <div class="category-card__overlay">
+            <div class="category-card__name">Windows</div>
+            <div class="category-card__desc">Casement, tilt & turn, sliding & fixed window systems</div>
+            <div class="category-card__arrow">Explore <span>&rarr;</span></div>
+          </div>
+        </a>
+
+        <!-- Doors -->
+        <a href="products.html#doors" class="category-card reveal reveal-delay-2">
+          <div class="category-card__image" style="background: linear-gradient(135deg, #1a2a1a, #2a3a2a); width:100%; height:100%;"></div>
+          <div class="category-card__overlay">
+            <div class="category-card__name">Doors</div>
+            <div class="category-card__desc">Pivot doors, entrance systems & folding doors</div>
+            <div class="category-card__arrow">Explore <span>&rarr;</span></div>
+          </div>
+        </a>
+
+        <!-- Sliding Systems -->
+        <a href="products.html#sliding" class="category-card reveal reveal-delay-3">
+          <div class="category-card__image" style="background: linear-gradient(135deg, #2a1a1a, #3a2a2a); width:100%; height:100%;"></div>
+          <div class="category-card__overlay">
+            <div class="category-card__name">Sliding Systems</div>
+            <div class="category-card__desc">Lift & slide, sliding & folding systems</div>
+            <div class="category-card__arrow">Explore <span>&rarr;</span></div>
+          </div>
+        </a>
+
+        <!-- Facades -->
+        <a href="products.html#facades" class="category-card reveal reveal-delay-1">
+          <div class="category-card__image" style="background: linear-gradient(135deg, #1a1a2e, #1e2a3e); width:100%; height:100%;"></div>
+          <div class="category-card__overlay">
+            <div class="category-card__name">Facades & Curtain Walls</div>
+            <div class="category-card__desc">Structural glazing & unitized curtain wall systems</div>
+            <div class="category-card__arrow">Explore <span>&rarr;</span></div>
+          </div>
+        </a>
+
+        <!-- Balustrades -->
+        <a href="products.html#balustrades" class="category-card reveal reveal-delay-2">
+          <div class="category-card__image" style="background: linear-gradient(135deg, #2a2a1a, #3a3a2a); width:100%; height:100%;"></div>
+          <div class="category-card__overlay">
+            <div class="category-card__name">Balustrades & Railings</div>
+            <div class="category-card__desc">Glass railing & balustrade safety systems</div>
+            <div class="category-card__arrow">Explore <span>&rarr;</span></div>
+          </div>
+        </a>
+
+        <!-- Handles -->
+        <a href="products.html#handles" class="category-card reveal reveal-delay-3">
+          <div class="category-card__image" style="background: linear-gradient(135deg, #1e1e2e, #2e2e3e); width:100%; height:100%;"></div>
+          <div class="category-card__overlay">
+            <div class="category-card__name">Handles & Hardware</div>
+            <div class="category-card__desc">Exclusive collection of handles and fittings</div>
+            <div class="category-card__arrow">Explore <span>&rarr;</span></div>
+          </div>
+        </a>
+      </div>
+
+      <div class="text-center mt-2xl">
+        <a href="products.html" class="btn btn--outline">View All Products</a>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ========== FEATURED PROJECTS ========== -->
+  <section class="section" id="projects">
+    <div class="container">
+      <div class="section-header reveal">
+        <span class="section-label">Our Portfolio</span>
+        <h2 class="section-title">Projects That Define Us</h2>
+        <p class="section-subtitle">From five-star hotels to luxury villas and industrial facilities, our work speaks for itself.</p>
+      </div>
+
+      <div class="featured-projects__grid" id="featuredProjectsGrid">
+        <!-- Dynamically loaded from projects.json -->
+      </div>
+
+      <div class="text-center mt-2xl">
+        <a href="projects.html" class="btn btn--outline">View All Projects</a>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ========== WHY CHOOSE US ========== -->
+  <section class="section section--alt" id="why-us">
+    <div class="container">
+      <div class="section-header reveal">
+        <span class="section-label">Why Choose Us</span>
+        <h2 class="section-title">The Sigma Alutech Advantage</h2>
+      </div>
+
+      <div class="why-us__grid">
+        <div class="why-us__item reveal reveal-delay-1">
+          <div class="why-us__icon">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--gold-primary)" stroke-width="1.5">
+              <path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/>
+            </svg>
+          </div>
+          <h4 class="why-us__item-title">Technal Certified</h4>
+          <p class="why-us__item-text">Authorized franchisee of Technal by Hydro &mdash; world-class French aluminium systems.</p>
+        </div>
+
+        <div class="why-us__item reveal reveal-delay-2">
+          <div class="why-us__icon">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--gold-primary)" stroke-width="1.5">
+              <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+            </svg>
+          </div>
+          <h4 class="why-us__item-title">25+ Years Experience</h4>
+          <p class="why-us__item-text">Proven track record since 2000 across residential, commercial, and industrial projects.</p>
+        </div>
+
+        <div class="why-us__item reveal reveal-delay-3">
+          <div class="why-us__icon">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--gold-primary)" stroke-width="1.5">
+              <path d="M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z"/>
+            </svg>
+          </div>
+          <h4 class="why-us__item-title">Complete Insulation</h4>
+          <p class="why-us__item-text">Superior thermal, acoustic, and water insulation for maximum comfort and energy savings.</p>
+        </div>
+
+        <div class="why-us__item reveal reveal-delay-1">
+          <div class="why-us__icon">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--gold-primary)" stroke-width="1.5">
+              <circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/>
+            </svg>
+          </div>
+          <h4 class="why-us__item-title">100+ Color Options</h4>
+          <p class="why-us__item-text">Anodized and powder coated finishes using premium Akzonobel and Jotun coatings, including wood finishes.</p>
+        </div>
+
+        <div class="why-us__item reveal reveal-delay-2">
+          <div class="why-us__icon">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--gold-primary)" stroke-width="1.5">
+              <path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94L6.7 20.17a2.5 2.5 0 01-3.54-3.54l6.7-6.73a6 6 0 017.94-7.94L14.7 6.3z"/>
+            </svg>
+          </div>
+          <h4 class="why-us__item-title">Maintenance Free</h4>
+          <p class="why-us__item-text">Once installed, our products require zero maintenance, ensuring long-lasting performance.</p>
+        </div>
+
+        <div class="why-us__item reveal reveal-delay-3">
+          <div class="why-us__icon">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--gold-primary)" stroke-width="1.5">
+              <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/>
+            </svg>
+          </div>
+          <h4 class="why-us__item-title">Expert Installation</h4>
+          <p class="why-us__item-text">30+ well-trained technicians providing end-to-end solutions from design to installation.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ========== CONTACT ========== -->
+  <section class="section" id="contact">
+    <div class="container">
+      <div class="section-header reveal">
+        <span class="section-label">Get In Touch</span>
+        <h2 class="section-title">Contact Us</h2>
+        <p class="section-subtitle">Reach out for consultations, quotes, or to learn more about our products and services.</p>
+      </div>
+
+      <div class="contact__grid">
+        <div class="reveal">
+          <div class="contact__item">
+            <div class="contact__icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>
+              </svg>
+            </div>
+            <div>
+              <div class="contact__label">Office Address</div>
+              <div class="contact__value">Bangalore, Karnataka, India</div>
+            </div>
+          </div>
+
+          <div class="contact__item">
+            <div class="contact__icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/>
+              </svg>
+            </div>
+            <div>
+              <div class="contact__label">Phone</div>
+              <div class="contact__value"><a href="tel:+919876543210">+91 98765 43210</a></div>
+            </div>
+          </div>
+
+          <div class="contact__item">
+            <div class="contact__icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><path d="M22 6l-10 7L2 6"/>
+              </svg>
+            </div>
+            <div>
+              <div class="contact__label">Email</div>
+              <div class="contact__value"><a href="mailto:info@sigmaalutech.com">info@sigmaalutech.com</a></div>
+            </div>
+          </div>
+
+          <div class="contact__item">
+            <div class="contact__icon">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
+              </svg>
+            </div>
+            <div>
+              <div class="contact__label">Business Hours</div>
+              <div class="contact__value">Mon - Sat: 9:00 AM - 6:00 PM</div>
+            </div>
+          </div>
+
+          <a href="https://wa.me/919876543210" target="_blank" rel="noopener" class="contact__whatsapp">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+            </svg>
+            Chat on WhatsApp
+          </a>
+        </div>
+
+        <div class="contact__map reveal reveal-delay-1">
+          <iframe
+            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d248849.84916296514!2d77.49085452924316!3d12.954517008845028!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bae1670c9b44e6d%3A0xf8dfc3e8517e4fe0!2sBengaluru%2C%20Karnataka%2C%20India!5e0!3m2!1sen!2sus!4v1706000000000!5m2!1sen!2sus"
+            loading="lazy"
+            referrerpolicy="no-referrer-when-downgrade"
+            title="Sigma Alutech Location">
+          </iframe>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ========== FOOTER ========== -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer__grid">
+        <div>
+          <div class="nav__logo-text" style="font-size: 1.5rem; margin-bottom: var(--space-sm);">SIGMA <span style="color: var(--gold-primary);">ALUTECH</span></div>
+          <p class="footer__brand-text">Premium aluminium fabrication solutions. Authorized Technal partner delivering French engineering excellence in India since 2000.</p>
+        </div>
+
+        <div>
+          <h4 class="footer__heading">Quick Links</h4>
+          <a href="#about" class="footer__link">About Us</a>
+          <a href="products.html" class="footer__link">Products</a>
+          <a href="projects.html" class="footer__link">Projects</a>
+          <a href="#contact" class="footer__link">Contact</a>
+        </div>
+
+        <div>
+          <h4 class="footer__heading">Products</h4>
+          <a href="products.html#windows" class="footer__link">Windows</a>
+          <a href="products.html#doors" class="footer__link">Doors</a>
+          <a href="products.html#sliding" class="footer__link">Sliding Systems</a>
+          <a href="products.html#facades" class="footer__link">Facades</a>
+          <a href="products.html#balustrades" class="footer__link">Balustrades</a>
+          <a href="products.html#handles" class="footer__link">Handles</a>
+        </div>
+      </div>
+
+      <div class="footer__bottom">
+        <span class="footer__copyright">&copy; 2025 Sigma Alutech. All rights reserved.</span>
+        <span class="footer__formerly">Formerly Ravi Enterprises &bull; Established 2000</span>
+      </div>
+    </div>
+  </footer>
+
+
+  <!-- Scripts -->
+  <script src="js/main.js"></script>
+
+</body>
+</html>
