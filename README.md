@@ -4,7 +4,7 @@ Static website for **Sigma Alutech** (formerly Ravi Enterprises) — an aluminiu
 
 **Tech stack:** Plain HTML + CSS + Vanilla JS — no frameworks, no build tools.
 **Hosting:** GitHub Pages (auto-deploys on push to `main`).
-**Live site:** [https://crazycoder22.github.io/sigma-alutech/](https://crazycoder22.github.io/sigma-alutech/)
+**Live site:** [https://sigmaalutech.in](https://sigmaalutech.in)
 
 ---
 
