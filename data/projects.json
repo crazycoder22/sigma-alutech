@@ -33,8 +33,8 @@
       "type": "Manufacturing Unit",
       "description": "Extension of the Bosch manufacturing plant featuring expanded aluminium window and facade systems matching the original installation.",
       "productsUsed": ["windows", "facades"],
-      "thumbnail": "images/projects/bosch-extension/thumb.svg",
-      "images": ["images/projects/bosch-extension/thumb.svg"],
+      "thumbnail": "images/projects/bosch-extension/thumb.jpg",
+      "images": ["images/projects/bosch-extension/01.jpg", "images/projects/bosch-extension/02.jpg", "images/projects/bosch-extension/03.jpg", "images/projects/bosch-extension/04.jpg", "images/projects/bosch-extension/05.jpg"],
       "featured": false
     },
     {
@@ -117,8 +117,8 @@
       "type": "Corporate Office",
       "description": "Corporate office featuring floor-to-ceiling aluminium glazing systems creating a modern, open workspace bathed in natural light.",
       "productsUsed": ["windows", "facades"],
-      "thumbnail": "images/projects/ajax-fiori/thumb.svg",
-      "images": ["images/projects/ajax-fiori/thumb.svg", "images/projects/ajax-fiori/thumb.svg"],
+      "thumbnail": "images/projects/ajax-fiori/thumb.jpg",
+      "images": ["images/projects/ajax-fiori/01.jpg", "images/projects/ajax-fiori/02.jpg"],
       "featured": true
     },
     {
@@ -131,8 +131,8 @@
       "type": "Educational Institution",
       "description": "Complete aluminium fenestration for the GIIS campus, including classrooms, laboratories, and administrative blocks with energy-efficient window systems.",
       "productsUsed": ["windows", "doors"],
-      "thumbnail": "images/projects/giis/thumb.svg",
-      "images": ["images/projects/giis/thumb.svg"],
+      "thumbnail": "images/projects/giis/thumb.jpg",
+      "images": ["images/projects/giis/01.jpg"],
       "featured": false
     },
     {
@@ -173,8 +173,8 @@
       "type": "Hotel",
       "description": "Full aluminium glazing solution for the hotel featuring curtain wall systems on the facade and high-performance windows throughout guest rooms.",
       "productsUsed": ["windows", "facades"],
-      "thumbnail": "images/projects/vacs-hotel/thumb.svg",
-      "images": ["images/projects/vacs-hotel/thumb.svg"],
+      "thumbnail": "images/projects/vacs-hotel/thumb.jpg",
+      "images": ["images/projects/vacs-hotel/01.jpg"],
       "featured": false
     },
     {
@@ -187,8 +187,8 @@
       "type": "Luxury Villas - 64 Units",
       "description": "64 luxury villas featuring premium aluminium window and door systems with custom finishes, delivering world-class quality and aesthetics.",
       "productsUsed": ["windows", "doors", "sliding", "balustrades"],
-      "thumbnail": "images/projects/poulomi-aristos/thumb.svg",
-      "images": ["images/projects/poulomi-aristos/thumb.svg", "images/projects/poulomi-aristos/thumb.svg"],
+      "thumbnail": "images/projects/poulomi-aristos/thumb.jpg",
+      "images": ["images/projects/poulomi-aristos/01.jpg", "images/projects/poulomi-aristos/02.jpg"],
       "featured": true
     },
     {
@@ -201,8 +201,8 @@
       "type": "Apartments - 312 Flats, 4 Towers",
       "description": "Large-scale residential project with 312 apartments across 4 towers, featuring standardized aluminium window systems for consistent quality and appearance.",
       "productsUsed": ["windows", "sliding"],
-      "thumbnail": "images/projects/raja-aristos/thumb.svg",
-      "images": ["images/projects/raja-aristos/thumb.svg", "images/projects/raja-aristos/thumb.svg"],
+      "thumbnail": "images/projects/raja-aristos/thumb.jpg",
+      "images": ["images/projects/raja-aristos/01.jpg"],
       "featured": false
     },
     {
@@ -327,8 +327,8 @@
       "type": "Research Centre",
       "description": "High-performance aluminium facade and window systems for the prestigious NCBS research campus, featuring curtain wall glazing and operable windows.",
       "productsUsed": ["windows", "facades"],
-      "thumbnail": "images/projects/ncbs/thumb.svg",
-      "images": ["images/projects/ncbs/thumb.svg", "images/projects/ncbs/thumb.svg"],
+      "thumbnail": "images/projects/ncbs/thumb.jpg",
+      "images": ["images/projects/ncbs/01.jpg", "images/projects/ncbs/02.jpg"],
       "featured": true
     },
     {
@@ -341,8 +341,8 @@
       "type": "Business Hotel",
       "description": "Full aluminium glazing and facade solution for this prominent Brigade Road hotel, featuring curtain wall systems and high-performance windows.",
       "productsUsed": ["windows", "facades"],
-      "thumbnail": "images/projects/iris-hotel/thumb.svg",
-      "images": ["images/projects/iris-hotel/thumb.svg"],
+      "thumbnail": "images/projects/iris-hotel/thumb.jpg",
+      "images": ["images/projects/iris-hotel/01.jpg"],
       "featured": false
     },
     {
@@ -370,7 +370,7 @@
       "description": "Complete aluminium fenestration for this luxury 5-star hotel on Residency Road, featuring curtain wall facade and premium window systems throughout.",
       "productsUsed": ["windows", "facades", "doors"],
       "thumbnail": "images/projects/chancery-pavilion/thumb.png",
-      "images": ["images/projects/chancery-pavilion/01.png"],
+      "images": ["images/projects/chancery-pavilion/01.png", "images/projects/chancery-pavilion/02.jpg"],
       "featured": true
     },
     {
@@ -383,8 +383,8 @@
       "type": "5-Star Hotel",
       "description": "Renovation of the iconic Lalit Ashok hotel featuring replacement of the entire aluminium fenestration system with modern, high-performance Technal systems.",
       "productsUsed": ["windows", "facades", "doors"],
-      "thumbnail": "images/projects/lalit-ashok/thumb.svg",
-      "images": ["images/projects/lalit-ashok/thumb.svg"],
+      "thumbnail": "images/projects/lalit-ashok/thumb.jpg",
+      "images": ["images/projects/lalit-ashok/01.jpg"],
       "featured": true
     },
     {
@@ -397,8 +397,8 @@
       "type": "5-Star Hotel",
       "description": "Premium aluminium facade and window systems for the iconic Park Hotel on MG Road, featuring contemporary curtain wall design.",
       "productsUsed": ["windows", "facades"],
-      "thumbnail": "images/projects/park-hotel-blr/thumb.svg",
-      "images": ["images/projects/park-hotel-blr/thumb.svg"],
+      "thumbnail": "images/projects/park-hotel-blr/thumb.jpg",
+      "images": ["images/projects/park-hotel-blr/01.jpg"],
       "featured": false
     },
     {
