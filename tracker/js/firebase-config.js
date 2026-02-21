@@ -13,10 +13,10 @@
 // ============================================================
 
 export const FIREBASE_CONFIG = {
-  apiKey:            "REPLACE_WITH_YOUR_API_KEY",
-  authDomain:        "REPLACE_WITH_YOUR_AUTH_DOMAIN",       // e.g. my-app.firebaseapp.com
-  projectId:         "REPLACE_WITH_YOUR_PROJECT_ID",        // e.g. my-app-12345
-  storageBucket:     "REPLACE_WITH_YOUR_STORAGE_BUCKET",    // e.g. my-app-12345.appspot.com
-  messagingSenderId: "REPLACE_WITH_YOUR_MESSAGING_SENDER_ID",
-  appId:             "REPLACE_WITH_YOUR_APP_ID"
+  apiKey:            "AIzaSyCbCQkv9Y-auz8Mc_EZdPUmCq3xfaNFNZw",
+  authDomain:        "sigma-alutech-tracker.firebaseapp.com",       // e.g. my-app.firebaseapp.com
+  projectId:         "sigma-alutech-tracker",        // e.g. my-app-12345
+  storageBucket:     "sigma-alutech-tracker.firebasestorage.app",    // e.g. my-app-12345.appspot.com
+  messagingSenderId: "1039544908671",
+  appId:             "1:1039544908671:web:12dd5273832cf5b060384a"
 };

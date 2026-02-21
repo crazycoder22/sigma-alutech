@@ -38,8 +38,13 @@
     <div id="deniedView" style="display:none;">
       <div class="denied-icon">⛔</div>
       <h3 class="denied-title">Access Denied</h3>
-      <p class="login-desc">Your account (<span id="deniedEmail"></span>) is not authorised to access this tracker. Please contact Sigma Alutech.</p>
-      <button id="signOutBtn" class="btn-outline">Sign out</button>
+      <p class="login-desc">Your account (<strong><span id="deniedEmail"></span></strong>) is not authorised to access this tracker.</p>
+      <p class="login-desc" style="font-size:0.75rem;margin-top:0;">
+        If you are the first admin, go to <strong>Firebase Console → Firestore → users collection</strong>,
+        create a document with your UID as the ID, and set <code>role: "admin"</code>.
+        Otherwise please contact Sigma Alutech to be added.
+      </p>
+      <button id="signOutBtn" class="btn-outline">Sign out &amp; try another account</button>
     </div>
   </div>
 
@@ -48,7 +53,7 @@
     import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
     import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
       from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
-    import { getFirestore, doc, getDoc }
+    import { getFirestore, doc, getDoc, setDoc, collection, query, where, getDocs, serverTimestamp }
       from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
     import { FIREBASE_CONFIG } from './js/firebase-config.js';
 
@@ -66,23 +71,44 @@
       view.style.display = 'block';
     }
 
+    function redirect(role) {
+      if (role === 'admin')    window.location.href = 'admin.html';
+      else if (role === 'customer') window.location.href = 'customer.html';
+    }
+
     async function handleUser(user) {
       if (!user) { showView(loginView); return; }
       showView(loadingView);
       try {
+        // 1. Check if user already exists in users collection
         const snap = await getDoc(doc(db, 'users', user.uid));
-        if (!snap.exists()) {
+        if (snap.exists()) {
+          const role = snap.data().role;
+          if (role === 'admin' || role === 'customer') { redirect(role); return; }
           document.getElementById('deniedEmail').textContent = user.email;
           showView(deniedView);
           return;
         }
-        const role = snap.data().role;
-        if (role === 'admin')    window.location.href = 'admin.html';
-        else if (role === 'customer') window.location.href = 'customer.html';
-        else {
-          document.getElementById('deniedEmail').textContent = user.email;
-          showView(deniedView);
+
+        // 2. Not in users — check pendingUsers by email (admin pre-registered them)
+        const pendingQ = query(collection(db, 'pendingUsers'), where('email', '==', user.email.toLowerCase()));
+        const pendingSnap = await getDocs(pendingQ);
+        if (!pendingSnap.empty) {
+          const pending = pendingSnap.docs[0].data();
+          // Promote: write to users/{uid} with their real UID
+          await setDoc(doc(db, 'users', user.uid), {
+            email:      pending.email,
+            role:       pending.role,
+            projectIds: pending.projectIds || [],
+            createdAt:  serverTimestamp()
+          });
+          redirect(pending.role);
+          return;
         }
+
+        // 3. Not found anywhere — deny access
+        document.getElementById('deniedEmail').textContent = user.email;
+        showView(deniedView);
       } catch (err) {
         showView(loginView);
         loginError.textContent = 'Error verifying access: ' + err.message;
