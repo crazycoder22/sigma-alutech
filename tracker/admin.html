@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin — Sigma Alutech Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Montserrat:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/tracker.css">
+</head>
+<body class="app-page">
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar__brand">
+      <span class="sidebar__logo">SIGMA ALUTECH</span>
+      <span class="sidebar__sub">Admin</span>
+    </div>
+
+    <nav class="sidebar__nav">
+      <button class="sidebar__tab active" data-tab="projects">Projects</button>
+      <button class="sidebar__tab" data-tab="users">Users</button>
+    </nav>
+
+    <!-- Projects list -->
+    <div class="sidebar__section" id="tabProjects">
+      <button class="btn-primary btn-sm" id="addProjectBtn">+ New Project</button>
+      <ul class="project-list" id="projectList"></ul>
+    </div>
+
+    <!-- Users list -->
+    <div class="sidebar__section" id="tabUsers" style="display:none;">
+      <button class="btn-primary btn-sm" id="addUserBtn">+ Add User</button>
+      <ul class="user-list" id="userList"></ul>
+    </div>
+
+    <div class="sidebar__footer">
+      <span id="adminEmail" class="sidebar__email"></span>
+      <button class="btn-outline btn-sm" id="signOutBtn">Sign out</button>
+    </div>
+  </aside>
+
+  <!-- Main content -->
+  <main class="main-content">
+
+    <!-- Empty state -->
+    <div class="empty-state" id="emptyState">
+      <div class="empty-state__icon">📋</div>
+      <h2>Select or create a project</h2>
+      <p>Choose a project from the sidebar, or create a new one to get started.</p>
+    </div>
+
+    <!-- Project view -->
+    <div id="projectView" style="display:none;">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title" id="projectName">Project Name</h1>
+          <p class="page-subtitle" id="projectDesc"></p>
+        </div>
+        <div class="page-header__actions">
+          <button class="btn-outline btn-sm" id="editProjectBtn">Edit Project</button>
+          <button class="btn-primary btn-sm" id="addItemBtn">+ Add Item</button>
+        </div>
+      </div>
+
+      <!-- Summary bar -->
+      <div class="summary-bar" id="summaryBar">
+        <div class="summary-stat">
+          <span class="summary-stat__label">Total Units</span>
+          <span class="summary-stat__value" id="summaryTotal">0</span>
+        </div>
+        <div class="summary-stat">
+          <span class="summary-stat__label">Installed</span>
+          <span class="summary-stat__value green" id="summaryFixed">0</span>
+        </div>
+        <div class="summary-stat">
+          <span class="summary-stat__label">Pending</span>
+          <span class="summary-stat__value amber" id="summaryBalance">0</span>
+        </div>
+        <div class="summary-stat summary-stat--progress">
+          <span class="summary-stat__label">Progress</span>
+          <div class="progress-bar">
+            <div class="progress-bar__fill" id="summaryProgress" style="width:0%"></div>
+          </div>
+          <span class="summary-stat__pct" id="summaryPct">0%</span>
+        </div>
+      </div>
+
+      <!-- Tracker table -->
+      <div class="table-wrap">
+        <table class="tracker-table" id="trackerTable">
+          <thead id="tableHead"></thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Modal: New/Edit Project -->
+  <div class="modal-backdrop" id="projectModalBackdrop" style="display:none;">
+    <div class="modal">
+      <h2 class="modal__title" id="projectModalTitle">New Project</h2>
+      <form id="projectForm">
+        <div class="form-group">
+          <label class="form-label">Project Name *</label>
+          <input type="text" class="form-input" id="projName" required placeholder="e.g. GITAM Residences @ Hyderabad">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Description</label>
+          <input type="text" class="form-input" id="projDesc" placeholder="Optional description">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Floors (comma-separated) *</label>
+          <input type="text" class="form-input" id="projFloors" required placeholder="1st Floor, 2nd Floor, 3rd Floor, ...">
+          <span class="form-hint">e.g. 1st Floor, 2nd Floor, 3rd Floor, 4th Floor, 5th Floor, 6th Floor</span>
+        </div>
+        <div class="form-group" id="projCustomersGroup">
+          <label class="form-label">Assign Customers</label>
+          <div id="customerCheckboxes" class="checkbox-list"></div>
+        </div>
+        <div class="modal__actions">
+          <button type="button" class="btn-outline" id="cancelProjectBtn">Cancel</button>
+          <button type="submit" class="btn-primary" id="saveProjectBtn">Save Project</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Add/Edit Item -->
+  <div class="modal-backdrop" id="itemModalBackdrop" style="display:none;">
+    <div class="modal modal--wide">
+      <h2 class="modal__title" id="itemModalTitle">Add Item</h2>
+      <form id="itemForm">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Flat No *</label>
+            <input type="number" class="form-input" id="itemFlatNo" required min="1" placeholder="1">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Window Type *</label>
+            <input type="text" class="form-input" id="itemType" required placeholder="e.g. SLD1, W20, V8">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Width (m) *</label>
+            <input type="number" class="form-input" id="itemWidth" required step="0.01" min="0" placeholder="1.8">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Height (m) *</label>
+            <input type="number" class="form-input" id="itemHeight" required step="0.01" min="0" placeholder="2.4">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Remarks</label>
+          <input type="text" class="form-input" id="itemRemarks" placeholder="Optional notes">
+        </div>
+        <h3 class="form-section-title">Floor Breakdown</h3>
+        <div id="floorFields" class="floor-fields"></div>
+        <div class="modal__actions">
+          <button type="button" class="btn-outline" id="cancelItemBtn">Cancel</button>
+          <button type="submit" class="btn-primary">Save Item</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Add User -->
+  <div class="modal-backdrop" id="userModalBackdrop" style="display:none;">
+    <div class="modal">
+      <h2 class="modal__title">Add User</h2>
+      <form id="userForm">
+        <div class="form-group">
+          <label class="form-label">Google Email *</label>
+          <input type="email" class="form-input" id="userEmail" required placeholder="user@gmail.com">
+          <span class="form-hint">User must sign in with this exact Google account.</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Role *</label>
+          <select class="form-input" id="userRole">
+            <option value="customer">Customer (read-only)</option>
+            <option value="admin">Admin (full access)</option>
+          </select>
+        </div>
+        <div class="form-group" id="userProjectsGroup">
+          <label class="form-label">Assign Projects</label>
+          <div id="projectCheckboxes" class="checkbox-list"></div>
+        </div>
+        <div id="userError" class="login-error" style="display:none;"></div>
+        <div class="modal__actions">
+          <button type="button" class="btn-outline" id="cancelUserBtn">Cancel</button>
+          <button type="submit" class="btn-primary">Add User</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script type="module" src="js/admin.js"></script>
+</body>
+</html>

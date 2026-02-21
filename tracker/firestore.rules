@@ -1,0 +1,57 @@
+// ============================================================
+// Firestore Security Rules — Sigma Alutech Tracker
+// ============================================================
+// Paste these into Firebase Console → Firestore → Rules tab
+// and click "Publish".
+// ============================================================
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper: is the caller a registered admin?
+    function isAdmin() {
+      return request.auth != null &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // Helper: is the caller a registered user (any role)?
+    function isRegistered() {
+      return request.auth != null &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    // ---- users collection ----
+    // Admins can read/write all users.
+    // A user can read their own document (to check their role).
+    match /users/{uid} {
+      allow read:  if request.auth != null && (request.auth.uid == uid || isAdmin());
+      allow write: if isAdmin();
+    }
+
+    // ---- pendingUsers collection ----
+    // Used by admin to pre-register users before first login.
+    match /pendingUsers/{emailKey} {
+      allow read, write: if isAdmin();
+    }
+
+    // ---- projects collection ----
+    // Admins can create/update/delete projects.
+    // Customers can read projects assigned to them.
+    match /projects/{projectId} {
+      allow read:   if isAdmin() ||
+                      (isRegistered() &&
+                       request.auth.uid != null &&
+                       get(/databases/$(database)/documents/users/$(request.auth.uid)).data.projectIds.hasAny([projectId]));
+      allow create, update, delete: if isAdmin();
+
+      // ---- items sub-collection ----
+      match /items/{itemId} {
+        allow read:   if isAdmin() ||
+                        (isRegistered() &&
+                         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.projectIds.hasAny([projectId]));
+        allow create, update, delete: if isAdmin();
+      }
+    }
+  }
+}
