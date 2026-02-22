@@ -77,7 +77,7 @@ function openProject(project) {
   // Subscribe to items
   if (itemsUnsub) itemsUnsub();
   itemsUnsub = onSnapshot(
-    query(collection(db, 'projects', project.id, 'items'), orderBy('windowType')),
+    query(collection(db, 'projects', project.id, 'items'), orderBy('flatNo'), orderBy('windowType')),
     snap => {
       const items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       renderTable(items);
@@ -168,6 +168,7 @@ document.getElementById('itemForm').addEventListener('submit', saveItem);
 function openItemModal(item) {
   editingItemId = item ? item.id : null;
   document.getElementById('itemModalTitle').textContent = item ? 'Edit Item' : 'Add Item';
+  document.getElementById('itemFlatNo').value   = item ? (item.flatNo || '')  : '';
   document.getElementById('itemType').value    = item ? item.windowType  : '';
   document.getElementById('itemWidth').value   = item ? item.width       : '';
   document.getElementById('itemHeight').value  = item ? item.height      : '';
@@ -204,6 +205,8 @@ function closeItemModal() {
 
 async function saveItem(e) {
   e.preventDefault();
+  const flatNoVal  = document.getElementById('itemFlatNo').value.trim();
+  const flatNo     = flatNoVal ? parseInt(flatNoVal) : null;
   const windowType = document.getElementById('itemType').value.trim().toUpperCase();
   const width      = parseFloat(document.getElementById('itemWidth').value);
   const height     = parseFloat(document.getElementById('itemHeight').value);
@@ -223,7 +226,7 @@ async function saveItem(e) {
   // total = sum of floor totals
   currentFloors.forEach(f => { total += (floorData[f] && floorData[f].total) || 0; });
 
-  const payload = { windowType, width, height, remarks, total, floorData, updatedAt: serverTimestamp() };
+  const payload = { flatNo, windowType, width, height, remarks, total, floorData, updatedAt: serverTimestamp() };
 
   try {
     const colRef = collection(db, 'projects', currentProject.id, 'items');
@@ -267,6 +270,7 @@ function renderTable(items) {
 
   // Build header
   let hRow1 = `<tr>
+    <th rowspan="2">Flat</th>
     <th rowspan="2">Type</th>
     <th rowspan="2">W×H (m)</th>
     <th rowspan="2">Total</th>
@@ -285,6 +289,7 @@ function renderTable(items) {
 
   // Build body
   tbody.innerHTML = '';
+  let prevFlat = null;
   let totTotal = 0, totFixed = 0;
   const floorTotals = {};
   floors.forEach(f => { floorTotals[f] = { total: 0, fixed: 0 }; });
@@ -301,9 +306,14 @@ function renderTable(items) {
       floorTotals[f].fixed += (fd[f] && fd[f].fixed) || 0;
     });
 
+    const isNewFlat = item.flatNo !== prevFlat;
+    prevFlat = item.flatNo;
+
     const tr = document.createElement('tr');
+    if (isNewFlat && item.flatNo) tr.classList.add('flat-start');
 
     let html = `
+      <td>${isNewFlat && item.flatNo ? item.flatNo : ''}</td>
       <td>${item.windowType}</td>
       <td>${item.width} × ${item.height}</td>
       <td>${overall.total}</td>
@@ -337,7 +347,7 @@ function renderTable(items) {
     const totBalance = totTotal - totFixed;
     const tr = document.createElement('tr');
     tr.className = 'totals-row';
-    let html = `<td><strong>TOTALS</strong></td>
+    let html = `<td colspan="2"><strong>TOTALS</strong></td>
       <td>—</td>
       <td>${totTotal}</td>
       <td class="cell-green">${totFixed}</td>

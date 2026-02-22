@@ -359,6 +359,7 @@ ul { list-style: none; }
 }
 .tracker-table tbody tr:last-child { border-bottom: none; }
 .tracker-table tbody tr:hover { background: var(--bg-secondary); }
+.tracker-table tbody tr.flat-start td:first-child { font-weight: 600; color: var(--gold); }
 
 .tracker-table td {
   padding: 9px 12px;

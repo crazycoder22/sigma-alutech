@@ -67,7 +67,7 @@ function openProject(project) {
 
   if (itemsUnsub) itemsUnsub();
   itemsUnsub = onSnapshot(
-    query(collection(db, 'projects', project.id, 'items'), orderBy('windowType')),
+    query(collection(db, 'projects', project.id, 'items'), orderBy('flatNo'), orderBy('windowType')),
     snap => {
       const items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       renderSummary(items);
@@ -147,6 +147,7 @@ function renderTable(items) {
   const floors = currentFloors;
 
   let hRow1 = `<tr>
+    <th rowspan="2">Flat</th>
     <th rowspan="2">Type</th>
     <th rowspan="2">W×H (m)</th>
     <th rowspan="2">Total</th>
@@ -164,6 +165,7 @@ function renderTable(items) {
   thead.innerHTML = hRow1 + hRow2;
 
   tbody.innerHTML = '';
+  let prevFlat = null;
   let totTotal = 0, totFixed = 0;
   const floorTotals = {};
   floors.forEach(f => { floorTotals[f] = { total: 0, fixed: 0 }; });
@@ -180,9 +182,14 @@ function renderTable(items) {
       floorTotals[f].fixed += (fd[f] || {}).fixed || 0;
     });
 
+    const isNewFlat = item.flatNo !== prevFlat;
+    prevFlat = item.flatNo;
+
     const tr = document.createElement('tr');
+    if (isNewFlat && item.flatNo) tr.classList.add('flat-start');
 
     let html = `
+      <td>${isNewFlat && item.flatNo ? item.flatNo : ''}</td>
       <td>${item.windowType}</td>
       <td>${item.width} × ${item.height}</td>
       <td>${overall.total}</td>
@@ -208,7 +215,7 @@ function renderTable(items) {
     const totBalance = totTotal - totFixed;
     const tr = document.createElement('tr');
     tr.className = 'totals-row';
-    let html = `<td><strong>TOTALS</strong></td>
+    let html = `<td colspan="2"><strong>TOTALS</strong></td>
       <td>—</td>
       <td>${totTotal}</td>
       <td class="cell-green">${totFixed}</td>
