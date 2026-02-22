@@ -76,7 +76,6 @@ function renderAll() {
   const filtered = getFilteredItems();
   renderSummary(filtered);
   renderTypeBreakdown(filtered);
-  renderPendingSupply(allItems); // pending list always shows all (not status-filtered)
   renderTable(filtered);
 }
 
@@ -382,41 +381,6 @@ function renderTypeBreakdown(items) {
         <div class="type-card__bar-fill" style="width:${pct}%"></div>
       </div>`;
     container.appendChild(card);
-  });
-}
-
-// ==============================================================
-// PENDING SUPPLY LIST
-// ==============================================================
-function renderPendingSupply(items) {
-  // Filter by floor if a floor filter is active, but always show pending status
-  let pendingItems = items.filter(i => i.status === 'pending');
-  if (currentFloorFilter !== 'all') {
-    pendingItems = pendingItems.filter(i => i.floor === currentFloorFilter);
-  }
-
-  const section = document.getElementById('pendingSection');
-  const countEl = document.getElementById('pendingCount');
-  const tbody   = document.getElementById('pendingBody');
-
-  if (pendingItems.length === 0) {
-    countEl.innerHTML = '';
-    tbody.innerHTML = '<tr><td colspan="5" style="color:var(--text-muted);text-align:center;padding:16px;">No pending items</td></tr>';
-    return;
-  }
-
-  countEl.innerHTML = `<span class="pending-count__dot"></span>${pendingItems.length} items`;
-  tbody.innerHTML = '';
-
-  pendingItems.forEach(item => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${item.floor}</td>
-      <td>${item.flatNo || '—'}</td>
-      <td>${item.windowType}</td>
-      <td>${item.width} × ${item.height}</td>
-      <td>${item.remarks || ''}</td>`;
-    tbody.appendChild(tr);
   });
 }
 

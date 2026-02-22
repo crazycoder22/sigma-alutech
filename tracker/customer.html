@@ -78,31 +78,7 @@
         </div>
       </div>
 
-      <!-- Type breakdown cards -->
-      <h2 class="section-heading">By Window Type</h2>
-      <div class="type-cards" id="typeCards"></div>
-
-      <!-- Pending supply list -->
-      <div class="pending-section" id="pendingSection">
-        <h2 class="section-heading">Pending Supply <span class="pending-count" id="pendingCount"></span></h2>
-        <div class="table-wrap">
-          <table class="pending-table" id="pendingTable">
-            <thead>
-              <tr>
-                <th>Floor</th>
-                <th>Flat</th>
-                <th>Type</th>
-                <th>W×H (m)</th>
-                <th>Remarks</th>
-              </tr>
-            </thead>
-            <tbody id="pendingBody"></tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Filter + table -->
-      <h2 class="section-heading">Detailed Breakdown</h2>
+      <!-- Filter bar -->
       <div class="filter-bar" id="filterBar">
         <span class="filter-bar__label">Floor:</span>
         <select id="floorFilter">
@@ -116,6 +92,13 @@
           <option value="installed">Installed</option>
         </select>
       </div>
+
+      <!-- Type breakdown cards -->
+      <h2 class="section-heading">By Window Type</h2>
+      <div class="type-cards" id="typeCards"></div>
+
+      <!-- All Items table -->
+      <h2 class="section-heading">All Items</h2>
       <div class="table-wrap">
         <table class="tracker-table" id="trackerTable">
           <thead id="tableHead"></thead>
