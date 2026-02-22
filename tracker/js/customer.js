@@ -3,20 +3,64 @@
 // ============================================================
 import { db, requireRole, signOutAndRedirect } from './auth.js';
 import {
-  collection, doc, getDoc, getDocs, onSnapshot
+  collection, doc, getDoc, onSnapshot
 } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
-let currentProject = null;
-let currentFloors  = [];
-let itemsUnsub     = null;
+let currentProject      = null;
+let currentFloors       = [];
+let allItems            = [];
+let itemsUnsub          = null;
+let currentFloorFilter  = 'all';
+let currentStatusFilter = 'all';
 
 // ---- Boot ----
 requireRole('customer').then(async ({ user, userData }) => {
   document.getElementById('customerEmail').textContent = user.email;
   document.getElementById('signOutBtn').addEventListener('click', signOutAndRedirect);
+  initFilters();
   await loadProjects(userData.projectIds || []);
 });
 
+// ---- Filters ----
+function initFilters() {
+  document.getElementById('floorFilter').addEventListener('change', e => {
+    currentFloorFilter = e.target.value;
+    renderAll();
+  });
+  document.getElementById('statusFilter').addEventListener('change', e => {
+    currentStatusFilter = e.target.value;
+    renderAll();
+  });
+}
+
+function populateFloorFilter() {
+  const sel = document.getElementById('floorFilter');
+  sel.innerHTML = '<option value="all">All Floors</option>';
+  currentFloors.forEach(f => {
+    sel.innerHTML += `<option value="${f}">${f}</option>`;
+  });
+}
+
+function getFilteredItems() {
+  let items = allItems;
+  if (currentFloorFilter !== 'all') {
+    items = items.filter(i => i.floor === currentFloorFilter);
+  }
+  if (currentStatusFilter !== 'all') {
+    items = items.filter(i => i.status === currentStatusFilter);
+  }
+  return items;
+}
+
+function renderAll() {
+  const filtered = getFilteredItems();
+  renderSummary(filtered);
+  renderTypeBreakdown(filtered);
+  renderPendingSupply(allItems);
+  renderTable(filtered);
+}
+
+// ---- Projects ----
 async function loadProjects(projectIds) {
   const ul = document.getElementById('projectList');
   ul.innerHTML = '';
@@ -44,7 +88,6 @@ async function loadProjects(projectIds) {
     ul.appendChild(li);
   });
 
-  // Auto-open first project
   if (projects.length > 0) {
     ul.firstChild.classList.add('active');
     openProject(projects[0]);
@@ -54,6 +97,10 @@ async function loadProjects(projectIds) {
 function openProject(project) {
   currentProject = project;
   currentFloors  = project.floors || [];
+  currentFloorFilter  = 'all';
+  currentStatusFilter = 'all';
+  document.getElementById('floorFilter').value  = 'all';
+  document.getElementById('statusFilter').value = 'all';
 
   document.getElementById('emptyState').style.display  = 'none';
   document.getElementById('projectView').style.display = '';
@@ -65,20 +112,21 @@ function openProject(project) {
     : '—';
   document.getElementById('lastUpdated').textContent = updatedAt;
 
+  populateFloorFilter();
+
   if (itemsUnsub) itemsUnsub();
   itemsUnsub = onSnapshot(
     collection(db, 'projects', project.id, 'items'),
     snap => {
-      const items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      // Sort client-side: by flatNo (nulls last), then windowType
-      items.sort((a, b) => {
+      allItems = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      allItems.sort((a, b) => {
+        const fi = currentFloors.indexOf(a.floor) - currentFloors.indexOf(b.floor);
+        if (fi !== 0) return fi;
         const fa = a.flatNo ?? Infinity, fb = b.flatNo ?? Infinity;
         if (fa !== fb) return fa - fb;
         return (a.windowType || '').localeCompare(b.windowType || '');
       });
-      renderSummary(items);
-      renderFloorCards(items);
-      renderTable(items);
+      renderAll();
     }
   );
 }
@@ -87,60 +135,104 @@ function openProject(project) {
 // SUMMARY
 // ==============================================================
 function renderSummary(items) {
-  let total = 0, fixed = 0;
-  items.forEach(item => {
-    total += item.total || 0;
-    currentFloors.forEach(f => {
-      fixed += ((item.floorData || {})[f] || {}).fixed || 0;
-    });
-  });
-  const balance = total - fixed;
-  const pct     = total > 0 ? Math.round((fixed / total) * 100) : 0;
-  document.getElementById('summaryTotal').textContent    = total;
-  document.getElementById('summaryFixed').textContent    = fixed;
-  document.getElementById('summaryBalance').textContent  = balance;
-  document.getElementById('summaryProgress').style.width = pct + '%';
-  document.getElementById('summaryPct').textContent      = pct + '%';
+  const total     = items.length;
+  const installed = items.filter(i => i.status === 'installed').length;
+  const supplied  = items.filter(i => i.status === 'supplied').length;
+  const pending   = items.filter(i => i.status === 'pending').length;
+  const pct       = total > 0 ? Math.round((installed / total) * 100) : 0;
+
+  document.getElementById('summaryTotal').textContent     = total;
+  document.getElementById('summaryInstalled').textContent = installed;
+  document.getElementById('summarySupplied').textContent  = supplied;
+  document.getElementById('summaryPending').textContent   = pending;
+  document.getElementById('summaryProgress').style.width  = pct + '%';
+  document.getElementById('summaryPct').textContent       = pct + '%';
 }
 
 // ==============================================================
-// FLOOR CARDS
+// TYPE BREAKDOWN CARDS
 // ==============================================================
-function renderFloorCards(items) {
-  const container = document.getElementById('floorCards');
+function renderTypeBreakdown(items) {
+  const container = document.getElementById('typeCards');
   container.innerHTML = '';
 
-  currentFloors.forEach(floor => {
-    let fTotal = 0, fFixed = 0;
-    items.forEach(item => {
-      const fd = (item.floorData || {})[floor] || {};
-      fTotal += fd.total || 0;
-      fFixed += fd.fixed || 0;
-    });
-    const fBalance = fTotal - fFixed;
-    const pct = fTotal > 0 ? Math.round((fFixed / fTotal) * 100) : 0;
-    const statusClass = fTotal === 0 ? 'floor-card--none'
-      : fFixed === fTotal ? 'floor-card--complete'
-      : 'floor-card--partial';
+  const byType = {};
+  items.forEach(item => {
+    const key = item.windowType;
+    if (!byType[key]) byType[key] = { items: [], dims: `${item.width} × ${item.height}` };
+    byType[key].items.push(item);
+  });
+
+  const types = Object.keys(byType).sort();
+  if (types.length === 0) {
+    container.innerHTML = '<p style="color:var(--text-muted);font-size:0.8rem;">No items yet.</p>';
+    return;
+  }
+
+  types.forEach(type => {
+    const group     = byType[type];
+    const total     = group.items.length;
+    const installed = group.items.filter(i => i.status === 'installed').length;
+    const supplied  = group.items.filter(i => i.status === 'supplied').length;
+    const pending   = group.items.filter(i => i.status === 'pending').length;
+    const pct       = total > 0 ? Math.round((installed / total) * 100) : 0;
 
     const card = document.createElement('div');
-    card.className = `floor-card ${statusClass}`;
+    card.className = 'type-card';
     card.innerHTML = `
-      <div class="floor-card__name">${floor}</div>
-      <div class="floor-card__stats">
-        <div class="floor-card__stat green">
-          <span>Installed</span>
-          <span>${fFixed}</span>
+      <div class="type-card__name">${type}</div>
+      <div class="type-card__dims">${group.dims} m &middot; ${total} units</div>
+      <div class="type-card__stats">
+        <div class="type-card__stat">
+          <span class="type-card__stat-label">Installed</span>
+          <span class="type-card__stat-val green">${installed}</span>
         </div>
-        <div class="floor-card__stat amber">
-          <span>Pending</span>
-          <span>${fBalance}</span>
+        <div class="type-card__stat">
+          <span class="type-card__stat-label">Supplied</span>
+          <span class="type-card__stat-val amber">${supplied}</span>
+        </div>
+        <div class="type-card__stat">
+          <span class="type-card__stat-label">Pending</span>
+          <span class="type-card__stat-val red">${pending}</span>
         </div>
       </div>
-      <div class="progress-bar" title="${pct}%">
-        <div class="progress-bar__fill" style="width:${pct}%"></div>
+      <div class="type-card__bar">
+        <div class="type-card__bar-fill" style="width:${pct}%"></div>
       </div>`;
     container.appendChild(card);
+  });
+}
+
+// ==============================================================
+// PENDING SUPPLY LIST
+// ==============================================================
+function renderPendingSupply(items) {
+  let pendingItems = items.filter(i => i.status === 'pending');
+  if (currentFloorFilter !== 'all') {
+    pendingItems = pendingItems.filter(i => i.floor === currentFloorFilter);
+  }
+
+  const countEl = document.getElementById('pendingCount');
+  const tbody   = document.getElementById('pendingBody');
+
+  if (pendingItems.length === 0) {
+    countEl.innerHTML = '';
+    tbody.innerHTML = '<tr><td colspan="5" style="color:var(--text-muted);text-align:center;padding:16px;">No pending items</td></tr>';
+    return;
+  }
+
+  countEl.innerHTML = `<span class="pending-count__dot"></span>${pendingItems.length} items`;
+  tbody.innerHTML = '';
+
+  pendingItems.forEach(item => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${item.floor}</td>
+      <td>${item.flatNo || '—'}</td>
+      <td>${item.windowType}</td>
+      <td>${item.width} × ${item.height}</td>
+      <td>${item.remarks || ''}</td>`;
+    tbody.appendChild(tr);
   });
 }
 
@@ -150,90 +242,32 @@ function renderFloorCards(items) {
 function renderTable(items) {
   const thead = document.getElementById('tableHead');
   const tbody = document.getElementById('tableBody');
-  const floors = currentFloors;
 
-  let hRow1 = `<tr>
-    <th rowspan="2">Flat</th>
-    <th rowspan="2">Type</th>
-    <th rowspan="2">W×H (m)</th>
-    <th rowspan="2">Total</th>
-    <th rowspan="2">Installed</th>
-    <th rowspan="2">Pending</th>`;
-  floors.forEach(f => {
-    hRow1 += `<th class="floor-header" colspan="3">${f}</th>`;
-  });
-  hRow1 += `<th rowspan="2">Remarks</th></tr>`;
-  let hRow2 = '<tr>';
-  floors.forEach(() => {
-    hRow2 += `<th class="floor-header">Total</th><th class="floor-header">Fixed</th><th class="floor-header">Pending</th>`;
-  });
-  hRow2 += '</tr>';
-  thead.innerHTML = hRow1 + hRow2;
+  thead.innerHTML = `<tr>
+    <th>Flat</th>
+    <th>Floor</th>
+    <th>Type</th>
+    <th>W×H (m)</th>
+    <th>Status</th>
+    <th>Remarks</th>
+  </tr>`;
 
   tbody.innerHTML = '';
-  let prevFlat = null;
-  let totTotal = 0, totFixed = 0;
-  const floorTotals = {};
-  floors.forEach(f => { floorTotals[f] = { total: 0, fixed: 0 }; });
+
+  if (items.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" style="color:var(--text-muted);text-align:center;padding:20px;">No items match the current filter</td></tr>';
+    return;
+  }
 
   items.forEach(item => {
-    const fd      = item.floorData || {};
-    const overall = { total: item.total || 0, fixed: 0 };
-    floors.forEach(f => { overall.fixed += (fd[f] || {}).fixed || 0; });
-    const balance = overall.total - overall.fixed;
-    totTotal += overall.total;
-    totFixed += overall.fixed;
-    floors.forEach(f => {
-      floorTotals[f].total += (fd[f] || {}).total || 0;
-      floorTotals[f].fixed += (fd[f] || {}).fixed || 0;
-    });
-
-    const isNewFlat = item.flatNo !== prevFlat;
-    prevFlat = item.flatNo;
-
     const tr = document.createElement('tr');
-    if (isNewFlat && item.flatNo) tr.classList.add('flat-start');
-
-    let html = `
-      <td>${isNewFlat && item.flatNo ? item.flatNo : ''}</td>
-      <td>${item.windowType}</td>
+    tr.innerHTML = `
+      <td>${item.flatNo || '—'}</td>
+      <td>${item.floor}</td>
+      <td><strong>${item.windowType}</strong></td>
       <td>${item.width} × ${item.height}</td>
-      <td>${overall.total}</td>
-      <td class="${overall.fixed === overall.total && overall.total > 0 ? 'cell-green' : 'cell-amber'}">${overall.fixed}</td>
-      <td class="${balance === 0 ? 'cell-zero' : 'cell-amber'}">${balance}</td>`;
-
-    floors.forEach(f => {
-      const fTotal   = (fd[f] || {}).total   || 0;
-      const fFixed   = (fd[f] || {}).fixed   || 0;
-      const fBalance = fTotal - fFixed;
-      html += `<td class="col-floor">${fTotal}</td>
-        <td class="col-floor ${fFixed > 0 ? 'cell-green' : 'cell-zero'}">${fFixed}</td>
-        <td class="col-floor ${fBalance === 0 ? 'cell-zero' : 'cell-amber'}">${fBalance}</td>`;
-    });
-
-    html += `<td>${item.remarks || ''}</td>`;
-    tr.innerHTML = html;
+      <td><span class="status-badge status-badge--${item.status}">${item.status}</span></td>
+      <td>${item.remarks || ''}</td>`;
     tbody.appendChild(tr);
   });
-
-  // Totals row
-  if (items.length > 0) {
-    const totBalance = totTotal - totFixed;
-    const tr = document.createElement('tr');
-    tr.className = 'totals-row';
-    let html = `<td colspan="2"><strong>TOTALS</strong></td>
-      <td>—</td>
-      <td>${totTotal}</td>
-      <td class="cell-green">${totFixed}</td>
-      <td class="${totBalance === 0 ? 'cell-zero' : 'cell-amber'}">${totBalance}</td>`;
-    floors.forEach(f => {
-      const ft = floorTotals[f];
-      html += `<td class="col-floor">${ft.total}</td>
-        <td class="col-floor cell-green">${ft.fixed}</td>
-        <td class="col-floor ${ft.total - ft.fixed === 0 ? 'cell-zero' : 'cell-amber'}">${ft.total - ft.fixed}</td>`;
-    });
-    html += '<td></td>';
-    tr.innerHTML = html;
-    tbody.appendChild(tr);
-  }
 }

@@ -8,18 +8,22 @@ import {
 } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
 // ---- State ----
-let currentProject = null;   // { id, ...data }
-let currentFloors  = [];     // ["1st Floor", ...]
-let allProjects    = [];     // [{ id, name }]
-let allUsers       = [];     // [{ id (uid), email, role, projectIds }]
-let itemsUnsub     = null;   // Firestore listener unsubscribe fn
-let editingItemId  = null;   // item being edited in modal
+let currentProject     = null;   // { id, ...data }
+let currentFloors      = [];     // ["1st Floor", ...]
+let allProjects        = [];     // [{ id, name }]
+let allUsers           = [];     // [{ id (uid), email, role, projectIds }]
+let allItems           = [];     // cached items for filtering
+let itemsUnsub         = null;   // Firestore listener unsubscribe fn
+let editingItemId      = null;   // item being edited in modal
+let currentFloorFilter  = 'all';
+let currentStatusFilter = 'all';
 
 // ---- Boot ----
 requireRole('admin').then(({ user }) => {
   document.getElementById('adminEmail').textContent = user.email;
   document.getElementById('signOutBtn').addEventListener('click', signOutAndRedirect);
   initTabs();
+  initFilters();
   loadProjects();
   loadUsers();
 });
@@ -35,6 +39,45 @@ function initTabs() {
       document.getElementById('tabUsers').style.display    = tab === 'users'    ? '' : 'none';
     });
   });
+}
+
+// ---- Filters ----
+function initFilters() {
+  document.getElementById('floorFilter').addEventListener('change', e => {
+    currentFloorFilter = e.target.value;
+    renderAll();
+  });
+  document.getElementById('statusFilter').addEventListener('change', e => {
+    currentStatusFilter = e.target.value;
+    renderAll();
+  });
+}
+
+function populateFloorFilter() {
+  const sel = document.getElementById('floorFilter');
+  sel.innerHTML = '<option value="all">All Floors</option>';
+  currentFloors.forEach(f => {
+    sel.innerHTML += `<option value="${f}">${f}</option>`;
+  });
+}
+
+function getFilteredItems() {
+  let items = allItems;
+  if (currentFloorFilter !== 'all') {
+    items = items.filter(i => i.floor === currentFloorFilter);
+  }
+  if (currentStatusFilter !== 'all') {
+    items = items.filter(i => i.status === currentStatusFilter);
+  }
+  return items;
+}
+
+function renderAll() {
+  const filtered = getFilteredItems();
+  renderSummary(filtered);
+  renderTypeBreakdown(filtered);
+  renderPendingSupply(allItems); // pending list always shows all (not status-filtered)
+  renderTable(filtered);
 }
 
 // ==============================================================
@@ -65,6 +108,11 @@ function renderProjectList() {
 function openProject(project) {
   currentProject = project;
   currentFloors  = project.floors || [];
+  currentFloorFilter  = 'all';
+  currentStatusFilter = 'all';
+  document.getElementById('floorFilter').value  = 'all';
+  document.getElementById('statusFilter').value = 'all';
+
   // Update sidebar highlight
   document.querySelectorAll('.project-list li').forEach(li => {
     li.classList.toggle('active', li.textContent === project.name);
@@ -74,20 +122,23 @@ function openProject(project) {
   document.getElementById('projectView').style.display = '';
   document.getElementById('projectName').textContent = project.name;
   document.getElementById('projectDesc').textContent = project.description || '';
+  populateFloorFilter();
+
   // Subscribe to items
   if (itemsUnsub) itemsUnsub();
   itemsUnsub = onSnapshot(
     collection(db, 'projects', project.id, 'items'),
     snap => {
-      const items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      // Sort client-side: by flatNo (nulls last), then windowType
-      items.sort((a, b) => {
+      allItems = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      // Sort: by floor, then flatNo (nulls last), then windowType
+      allItems.sort((a, b) => {
+        const fi = currentFloors.indexOf(a.floor) - currentFloors.indexOf(b.floor);
+        if (fi !== 0) return fi;
         const fa = a.flatNo ?? Infinity, fb = b.flatNo ?? Infinity;
         if (fa !== fb) return fa - fb;
         return (a.windowType || '').localeCompare(b.windowType || '');
       });
-      renderTable(items);
-      renderSummary(items);
+      renderAll();
     }
   );
 }
@@ -103,7 +154,6 @@ function openProjectModal(project) {
   document.getElementById('projName').value   = project ? project.name        : '';
   document.getElementById('projDesc').value   = project ? (project.description || '') : '';
   document.getElementById('projFloors').value = project ? (project.floors || []).join(', ') : '1st Floor, 2nd Floor, 3rd Floor, 4th Floor, 5th Floor, 6th Floor';
-  // Render customer checkboxes
   const box = document.getElementById('customerCheckboxes');
   box.innerHTML = '';
   allUsers.filter(u => u.role === 'customer').forEach(u => {
@@ -129,7 +179,6 @@ async function saveProject(e) {
 
   try {
     const payload = { name, description: desc, floors, updatedAt: serverTimestamp() };
-
     if (projectId) {
       await updateDoc(doc(db, 'projects', projectId), payload);
     } else {
@@ -138,7 +187,6 @@ async function saveProject(e) {
       projectId = ref.id;
     }
 
-    // Update customer projectIds
     const checkedUids = [...document.querySelectorAll('#customerCheckboxes input:checked')].map(i => i.value);
     for (const u of allUsers.filter(u => u.role === 'customer')) {
       const has  = (u.projectIds || []).includes(projectId);
@@ -165,7 +213,7 @@ async function saveProject(e) {
 }
 
 // ==============================================================
-// ITEMS (tracker rows)
+// ITEMS (per-unit with status)
 // ==============================================================
 document.getElementById('addItemBtn').addEventListener('click', () => openItemModal(null));
 document.getElementById('cancelItemBtn').addEventListener('click', () => closeItemModal());
@@ -174,32 +222,30 @@ document.getElementById('itemForm').addEventListener('submit', saveItem);
 function openItemModal(item) {
   editingItemId = item ? item.id : null;
   document.getElementById('itemModalTitle').textContent = item ? 'Edit Item' : 'Add Item';
-  document.getElementById('itemFlatNo').value   = item ? (item.flatNo || '')  : '';
-  document.getElementById('itemType').value    = item ? item.windowType  : '';
-  document.getElementById('itemWidth').value   = item ? item.width       : '';
-  document.getElementById('itemHeight').value  = item ? item.height      : '';
+
+  // Populate floor dropdown
+  const floorSel = document.getElementById('itemFloor');
+  floorSel.innerHTML = '<option value="">Select floor</option>';
+  currentFloors.forEach(f => {
+    floorSel.innerHTML += `<option value="${f}">${f}</option>`;
+  });
+
+  document.getElementById('itemFloor').value   = item ? item.floor         : '';
+  document.getElementById('itemFlatNo').value  = item ? (item.flatNo || '') : '';
+  document.getElementById('itemType').value    = item ? item.windowType    : '';
+  document.getElementById('itemWidth').value   = item ? item.width         : '';
+  document.getElementById('itemHeight').value  = item ? item.height        : '';
+  document.getElementById('itemStatus').value  = item ? item.status        : 'pending';
   document.getElementById('itemRemarks').value = item ? (item.remarks || '') : '';
 
-  // Build per-floor fields
-  const floorFields = document.getElementById('floorFields');
-  floorFields.innerHTML = '';
-  currentFloors.forEach(floor => {
-    const fd = (item && item.floorData && item.floorData[floor]) || {};
-    floorFields.innerHTML += `
-      <div class="floor-field">
-        <div class="floor-field__name">${floor}</div>
-        <div class="floor-field__row">
-          <label>Total</label>
-          <input type="number" min="0" data-floor="${floor}" data-field="total"
-            value="${fd.total !== undefined ? fd.total : ''}" placeholder="0">
-        </div>
-        <div class="floor-field__row">
-          <label>Fixed</label>
-          <input type="number" min="0" data-floor="${floor}" data-field="fixed"
-            value="${fd.fixed !== undefined ? fd.fixed : ''}" placeholder="0">
-        </div>
-      </div>`;
-  });
+  // Quantity field: show only when adding, hide when editing
+  const qtyGroup = document.getElementById('qtyGroup');
+  if (item) {
+    qtyGroup.style.display = 'none';
+  } else {
+    qtyGroup.style.display = '';
+    document.getElementById('itemQty').value = 1;
+  }
 
   document.getElementById('itemModalBackdrop').style.display = 'flex';
 }
@@ -211,37 +257,29 @@ function closeItemModal() {
 
 async function saveItem(e) {
   e.preventDefault();
+  const floor      = document.getElementById('itemFloor').value;
   const flatNoVal  = document.getElementById('itemFlatNo').value.trim();
   const flatNo     = flatNoVal ? parseInt(flatNoVal) : null;
   const windowType = document.getElementById('itemType').value.trim().toUpperCase();
   const width      = parseFloat(document.getElementById('itemWidth').value);
   const height     = parseFloat(document.getElementById('itemHeight').value);
+  const status     = document.getElementById('itemStatus').value;
   const remarks    = document.getElementById('itemRemarks').value.trim();
 
-  if (!windowType || isNaN(width) || isNaN(height)) return;
+  if (!floor || !windowType || isNaN(width) || isNaN(height)) return;
 
-  // Collect floorData
-  const floorData = {};
-  let total = 0;
-  document.querySelectorAll('#floorFields input[data-floor]').forEach(input => {
-    const floor = input.dataset.floor;
-    const field = input.dataset.field;
-    if (!floorData[floor]) floorData[floor] = {};
-    floorData[floor][field] = parseInt(input.value) || 0;
-  });
-  // total = sum of floor totals
-  currentFloors.forEach(f => { total += (floorData[f] && floorData[f].total) || 0; });
-
-  const payload = { flatNo, windowType, width, height, remarks, total, floorData, updatedAt: serverTimestamp() };
+  const payload = { floor, flatNo, windowType, width, height, status, remarks, updatedAt: serverTimestamp() };
 
   try {
     const colRef = collection(db, 'projects', currentProject.id, 'items');
     if (editingItemId) {
       await updateDoc(doc(colRef, editingItemId), payload);
     } else {
-      await addDoc(colRef, payload);
+      const qty = Math.max(1, parseInt(document.getElementById('itemQty').value) || 1);
+      for (let i = 0; i < qty; i++) {
+        await addDoc(colRef, { ...payload, createdAt: serverTimestamp() });
+      }
     }
-    // Update project updatedAt
     await updateDoc(doc(db, 'projects', currentProject.id), { updatedAt: serverTimestamp() });
     closeItemModal();
   } catch (err) {
@@ -256,14 +294,130 @@ async function deleteItem(itemId) {
   await updateDoc(doc(db, 'projects', currentProject.id), { updatedAt: serverTimestamp() });
 }
 
-// ---- Inline fixed-count editing ----
-async function saveFixedCount(itemId, floor, value) {
-  const val = parseInt(value) || 0;
-  await updateDoc(doc(db, 'projects', currentProject.id, 'items', itemId), {
-    [`floorData.${floor}.fixed`]: val,
-    updatedAt: serverTimestamp()
+// ---- Inline status cycling ----
+const STATUS_CYCLE = ['pending', 'supplied', 'installed'];
+
+async function cycleStatus(itemId, currentStatus) {
+  const idx = STATUS_CYCLE.indexOf(currentStatus);
+  const next = STATUS_CYCLE[(idx + 1) % STATUS_CYCLE.length];
+  try {
+    await updateDoc(doc(db, 'projects', currentProject.id, 'items', itemId), {
+      status: next,
+      updatedAt: serverTimestamp()
+    });
+    await updateDoc(doc(db, 'projects', currentProject.id), { updatedAt: serverTimestamp() });
+  } catch (err) {
+    console.error('Status update failed:', err);
+    alert('Failed to update status: ' + err.message);
+  }
+}
+
+// ==============================================================
+// SUMMARY
+// ==============================================================
+function renderSummary(items) {
+  const total     = items.length;
+  const installed = items.filter(i => i.status === 'installed').length;
+  const supplied  = items.filter(i => i.status === 'supplied').length;
+  const pending   = items.filter(i => i.status === 'pending').length;
+  const pct       = total > 0 ? Math.round((installed / total) * 100) : 0;
+
+  document.getElementById('summaryTotal').textContent     = total;
+  document.getElementById('summaryInstalled').textContent = installed;
+  document.getElementById('summarySupplied').textContent  = supplied;
+  document.getElementById('summaryPending').textContent   = pending;
+  document.getElementById('summaryProgress').style.width  = pct + '%';
+  document.getElementById('summaryPct').textContent       = pct + '%';
+}
+
+// ==============================================================
+// TYPE BREAKDOWN CARDS
+// ==============================================================
+function renderTypeBreakdown(items) {
+  const container = document.getElementById('typeCards');
+  container.innerHTML = '';
+
+  // Group by windowType
+  const byType = {};
+  items.forEach(item => {
+    const key = item.windowType;
+    if (!byType[key]) byType[key] = { items: [], dims: `${item.width} × ${item.height}` };
+    byType[key].items.push(item);
   });
-  await updateDoc(doc(db, 'projects', currentProject.id), { updatedAt: serverTimestamp() });
+
+  const types = Object.keys(byType).sort();
+  if (types.length === 0) {
+    container.innerHTML = '<p style="color:var(--text-muted);font-size:0.8rem;">No items yet.</p>';
+    return;
+  }
+
+  types.forEach(type => {
+    const group     = byType[type];
+    const total     = group.items.length;
+    const installed = group.items.filter(i => i.status === 'installed').length;
+    const supplied  = group.items.filter(i => i.status === 'supplied').length;
+    const pending   = group.items.filter(i => i.status === 'pending').length;
+    const pct       = total > 0 ? Math.round((installed / total) * 100) : 0;
+
+    const card = document.createElement('div');
+    card.className = 'type-card';
+    card.innerHTML = `
+      <div class="type-card__name">${type}</div>
+      <div class="type-card__dims">${group.dims} m &middot; ${total} units</div>
+      <div class="type-card__stats">
+        <div class="type-card__stat">
+          <span class="type-card__stat-label">Installed</span>
+          <span class="type-card__stat-val green">${installed}</span>
+        </div>
+        <div class="type-card__stat">
+          <span class="type-card__stat-label">Supplied</span>
+          <span class="type-card__stat-val amber">${supplied}</span>
+        </div>
+        <div class="type-card__stat">
+          <span class="type-card__stat-label">Pending</span>
+          <span class="type-card__stat-val red">${pending}</span>
+        </div>
+      </div>
+      <div class="type-card__bar">
+        <div class="type-card__bar-fill" style="width:${pct}%"></div>
+      </div>`;
+    container.appendChild(card);
+  });
+}
+
+// ==============================================================
+// PENDING SUPPLY LIST
+// ==============================================================
+function renderPendingSupply(items) {
+  // Filter by floor if a floor filter is active, but always show pending status
+  let pendingItems = items.filter(i => i.status === 'pending');
+  if (currentFloorFilter !== 'all') {
+    pendingItems = pendingItems.filter(i => i.floor === currentFloorFilter);
+  }
+
+  const section = document.getElementById('pendingSection');
+  const countEl = document.getElementById('pendingCount');
+  const tbody   = document.getElementById('pendingBody');
+
+  if (pendingItems.length === 0) {
+    countEl.innerHTML = '';
+    tbody.innerHTML = '<tr><td colspan="5" style="color:var(--text-muted);text-align:center;padding:16px;">No pending items</td></tr>';
+    return;
+  }
+
+  countEl.innerHTML = `<span class="pending-count__dot"></span>${pendingItems.length} items`;
+  tbody.innerHTML = '';
+
+  pendingItems.forEach(item => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${item.floor}</td>
+      <td>${item.flatNo || '—'}</td>
+      <td>${item.windowType}</td>
+      <td>${item.width} × ${item.height}</td>
+      <td>${item.remarks || ''}</td>`;
+    tbody.appendChild(tr);
+  });
 }
 
 // ==============================================================
@@ -272,109 +426,55 @@ async function saveFixedCount(itemId, floor, value) {
 function renderTable(items) {
   const thead = document.getElementById('tableHead');
   const tbody = document.getElementById('tableBody');
-  const floors = currentFloors;
 
-  // Build header
-  let hRow1 = `<tr>
-    <th rowspan="2">Flat</th>
-    <th rowspan="2">Type</th>
-    <th rowspan="2">W×H (m)</th>
-    <th rowspan="2">Total</th>
-    <th rowspan="2">Fixed</th>
-    <th rowspan="2">Balance</th>`;
-  floors.forEach(f => {
-    hRow1 += `<th class="floor-header" colspan="3">${f}</th>`;
-  });
-  hRow1 += `<th rowspan="2">Remarks</th><th rowspan="2"></th></tr>`;
-  let hRow2 = '<tr>';
-  floors.forEach(() => {
-    hRow2 += `<th class="floor-header">Total</th><th class="floor-header">Fixed</th><th class="floor-header">Balance</th>`;
-  });
-  hRow2 += '</tr>';
-  thead.innerHTML = hRow1 + hRow2;
+  thead.innerHTML = `<tr>
+    <th>Flat</th>
+    <th>Floor</th>
+    <th>Type</th>
+    <th>W×H (m)</th>
+    <th>Status</th>
+    <th>Remarks</th>
+    <th></th>
+  </tr>`;
 
-  // Build body
   tbody.innerHTML = '';
-  let prevFlat = null;
-  let totTotal = 0, totFixed = 0;
-  const floorTotals = {};
-  floors.forEach(f => { floorTotals[f] = { total: 0, fixed: 0 }; });
+
+  if (items.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7" style="color:var(--text-muted);text-align:center;padding:20px;">No items match the current filter</td></tr>';
+    return;
+  }
 
   items.forEach(item => {
-    const fd      = item.floorData || {};
-    const overall = { total: item.total || 0, fixed: 0 };
-    floors.forEach(f => { overall.fixed += (fd[f] && fd[f].fixed) || 0; });
-    const balance = overall.total - overall.fixed;
-    totTotal += overall.total;
-    totFixed += overall.fixed;
-    floors.forEach(f => {
-      floorTotals[f].total += (fd[f] && fd[f].total) || 0;
-      floorTotals[f].fixed += (fd[f] && fd[f].fixed) || 0;
-    });
-
-    const isNewFlat = item.flatNo !== prevFlat;
-    prevFlat = item.flatNo;
-
     const tr = document.createElement('tr');
-    if (isNewFlat && item.flatNo) tr.classList.add('flat-start');
-
-    let html = `
-      <td>${isNewFlat && item.flatNo ? item.flatNo : ''}</td>
-      <td>${item.windowType}</td>
+    tr.innerHTML = `
+      <td>${item.flatNo || '—'}</td>
+      <td>${item.floor}</td>
+      <td><strong>${item.windowType}</strong></td>
       <td>${item.width} × ${item.height}</td>
-      <td>${overall.total}</td>
-      <td class="${overall.fixed === overall.total && overall.total > 0 ? 'cell-green' : 'cell-amber'}">${overall.fixed}</td>
-      <td class="${balance === 0 ? 'cell-zero' : 'cell-amber'}">${balance}</td>`;
-
-    floors.forEach(f => {
-      const fTotal   = (fd[f] && fd[f].total)   || 0;
-      const fFixed   = (fd[f] && fd[f].fixed)   || 0;
-      const fBalance = fTotal - fFixed;
-      html += `<td class="col-floor">${fTotal}</td>
-        <td class="col-floor cell-fixed">
-          <span class="edit-cell" title="Click to edit"
-            data-item="${item.id}" data-floor="${f}" data-val="${fFixed}">${fFixed}</span>
-        </td>
-        <td class="col-floor cell-balance ${fBalance === 0 ? 'cell-zero' : 'cell-amber'}">${fBalance}</td>`;
-    });
-
-    html += `<td>${item.remarks || ''}</td>
+      <td>
+        <span class="status-badge status-badge--${item.status} clickable"
+          data-status-item="${item.id}" data-status="${item.status}"
+          title="Click to change status">${item.status}</span>
+      </td>
+      <td>${item.remarks || ''}</td>
       <td>
         <button class="btn-icon" data-edit="${item.id}" title="Edit">✏️</button>
         <button class="btn-icon danger" data-delete="${item.id}" title="Delete">🗑</button>
       </td>`;
-
-    tr.innerHTML = html;
     tbody.appendChild(tr);
   });
 
-  // Totals row
-  if (items.length > 0) {
-    const totBalance = totTotal - totFixed;
-    const tr = document.createElement('tr');
-    tr.className = 'totals-row';
-    let html = `<td colspan="2"><strong>TOTALS</strong></td>
-      <td>—</td>
-      <td>${totTotal}</td>
-      <td class="cell-green">${totFixed}</td>
-      <td class="${totBalance === 0 ? 'cell-zero' : 'cell-amber'}">${totBalance}</td>`;
-    floors.forEach(f => {
-      const ft = floorTotals[f];
-      html += `<td class="col-floor">${ft.total}</td>
-        <td class="col-floor cell-green">${ft.fixed}</td>
-        <td class="col-floor ${ft.total - ft.fixed === 0 ? 'cell-zero' : 'cell-amber'}">${ft.total - ft.fixed}</td>`;
-    });
-    html += '<td colspan="2"></td>';
-    tr.innerHTML = html;
-    tbody.appendChild(tr);
-  }
-
-  // Event delegation
-  thead.addEventListener('click', handleTableClick);
-  tbody.addEventListener('click', handleTableClick);
+  // Event delegation (remove old listeners by re-cloning — or just use single handler)
+  tbody.onclick = handleTableClick;
 }
 
 async function handleTableClick(e) {
+  // Status badge click
+  const badge = e.target.closest('[data-status-item]');
+  if (badge) {
+    cycleStatus(badge.dataset.statusItem, badge.dataset.status);
+    return;
+  }
   // Edit-item button
   const editBtn = e.target.closest('[data-edit]');
   if (editBtn) {
@@ -386,46 +486,6 @@ async function handleTableClick(e) {
   // Delete button
   const delBtn = e.target.closest('[data-delete]');
   if (delBtn) { deleteItem(delBtn.dataset.delete); return; }
-  // Inline fixed-count cell
-  const cell = e.target.closest('.edit-cell');
-  if (cell && !cell.querySelector('input')) {
-    const input = document.createElement('input');
-    input.type  = 'number';
-    input.min   = '0';
-    input.value = cell.dataset.val;
-    cell.innerHTML = '';
-    cell.appendChild(input);
-    input.focus();
-    input.select();
-    const commit = () => {
-      const val = input.value;
-      saveFixedCount(cell.dataset.item, cell.dataset.floor, val);
-      cell.dataset.val = val;
-      cell.textContent = val;
-    };
-    input.addEventListener('blur', commit);
-    input.addEventListener('keydown', ev => { if (ev.key === 'Enter') { ev.preventDefault(); commit(); } });
-  }
-}
-
-// ==============================================================
-// SUMMARY
-// ==============================================================
-function renderSummary(items) {
-  let total = 0, fixed = 0;
-  items.forEach(item => {
-    total += item.total || 0;
-    (currentFloors).forEach(f => {
-      fixed += ((item.floorData || {})[f] || {}).fixed || 0;
-    });
-  });
-  const balance = total - fixed;
-  const pct     = total > 0 ? Math.round((fixed / total) * 100) : 0;
-  document.getElementById('summaryTotal').textContent   = total;
-  document.getElementById('summaryFixed').textContent   = fixed;
-  document.getElementById('summaryBalance').textContent = balance;
-  document.getElementById('summaryProgress').style.width = pct + '%';
-  document.getElementById('summaryPct').textContent      = pct + '%';
 }
 
 // ==============================================================
@@ -476,7 +536,6 @@ function openUserModal() {
   document.getElementById('userRole').value  = 'customer';
   document.getElementById('userError').style.display = 'none';
   document.getElementById('userProjectsGroup').style.display = '';
-  // Render project checkboxes
   const box = document.getElementById('projectCheckboxes');
   box.innerHTML = '';
   allProjects.forEach(p => {
@@ -497,7 +556,6 @@ async function addUser(e) {
 
   if (!email) return;
 
-  // Check if email already exists
   const existing = allUsers.find(u => u.email === email);
   if (existing) {
     errEl.textContent = 'This email is already registered.';
@@ -505,17 +563,11 @@ async function addUser(e) {
     return;
   }
 
-  // Store by email as doc ID (uid will be matched on first login via a Cloud Function or manually)
-  // We store a pending user keyed by email; on login, auth.js will look up by uid (email match)
-  // For simplicity: store with a generated id, and resolve uid on first sign-in via the login page
-  // The login flow in index.html already does: check users/{uid} — so admin must add by uid.
-  // We store as email-keyed for lookup convenience and show instructions.
   const newDoc = { email, role, projectIds, createdAt: serverTimestamp(), pendingUid: true };
-  // Use email as document ID (we'll look up by email on first login)
   await setDoc(doc(db, 'pendingUsers', email.replace(/\./g, '_')), newDoc);
 
   document.getElementById('userModalBackdrop').style.display = 'none';
-  alert(`User ${email} added as ${role}.\n\nNote: They must sign in with Google once before they appear in the active user list. You can also copy their UID from the Firebase Console → Authentication and add them manually to the 'users' collection.`);
+  alert(`User ${email} added as ${role}.\n\nNote: They must sign in with Google once before they appear in the active user list.`);
   await loadUsers();
 }
 

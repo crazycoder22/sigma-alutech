@@ -71,11 +71,15 @@
         </div>
         <div class="summary-stat">
           <span class="summary-stat__label">Installed</span>
-          <span class="summary-stat__value green" id="summaryFixed">0</span>
+          <span class="summary-stat__value green" id="summaryInstalled">0</span>
+        </div>
+        <div class="summary-stat">
+          <span class="summary-stat__label">Supplied</span>
+          <span class="summary-stat__value amber" id="summarySupplied">0</span>
         </div>
         <div class="summary-stat">
           <span class="summary-stat__label">Pending</span>
-          <span class="summary-stat__value amber" id="summaryBalance">0</span>
+          <span class="summary-stat__value" id="summaryPending" style="color:var(--red)">0</span>
         </div>
         <div class="summary-stat summary-stat--progress">
           <span class="summary-stat__label">Progress</span>
@@ -86,7 +90,44 @@
         </div>
       </div>
 
-      <!-- Tracker table -->
+      <!-- Type breakdown cards -->
+      <h3 class="section-heading">By Window Type</h3>
+      <div class="type-cards" id="typeCards"></div>
+
+      <!-- Pending supply list -->
+      <div class="pending-section" id="pendingSection">
+        <h3 class="section-heading">Pending Supply <span class="pending-count" id="pendingCount"></span></h3>
+        <div class="table-wrap">
+          <table class="pending-table" id="pendingTable">
+            <thead>
+              <tr>
+                <th>Floor</th>
+                <th>Flat</th>
+                <th>Type</th>
+                <th>W×H (m)</th>
+                <th>Remarks</th>
+              </tr>
+            </thead>
+            <tbody id="pendingBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Filter bar + table -->
+      <h3 class="section-heading">All Items</h3>
+      <div class="filter-bar" id="filterBar">
+        <span class="filter-bar__label">Floor:</span>
+        <select id="floorFilter">
+          <option value="all">All Floors</option>
+        </select>
+        <span class="filter-bar__label" style="margin-left:8px;">Status:</span>
+        <select id="statusFilter">
+          <option value="all">All Statuses</option>
+          <option value="pending">Pending</option>
+          <option value="supplied">Supplied</option>
+          <option value="installed">Installed</option>
+        </select>
+      </div>
       <div class="table-wrap">
         <table class="tracker-table" id="trackerTable">
           <thead id="tableHead"></thead>
@@ -129,18 +170,26 @@
 
   <!-- Modal: Add/Edit Item -->
   <div class="modal-backdrop" id="itemModalBackdrop" style="display:none;">
-    <div class="modal modal--wide">
+    <div class="modal">
       <h2 class="modal__title" id="itemModalTitle">Add Item</h2>
       <form id="itemForm">
         <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Floor *</label>
+            <select class="form-input" id="itemFloor" required>
+              <option value="">Select floor</option>
+            </select>
+          </div>
           <div class="form-group">
             <label class="form-label">Flat No</label>
             <input type="number" class="form-input" id="itemFlatNo" min="1" placeholder="e.g. 101">
           </div>
           <div class="form-group">
             <label class="form-label">Window Type *</label>
-            <input type="text" class="form-input" id="itemType" required placeholder="e.g. SLD1, W20, V8">
+            <input type="text" class="form-input" id="itemType" required placeholder="e.g. SLD1, W20">
           </div>
+        </div>
+        <div class="form-row">
           <div class="form-group">
             <label class="form-label">Width (m) *</label>
             <input type="number" class="form-input" id="itemWidth" required step="0.01" min="0" placeholder="1.8">
@@ -149,13 +198,26 @@
             <label class="form-label">Height (m) *</label>
             <input type="number" class="form-input" id="itemHeight" required step="0.01" min="0" placeholder="2.4">
           </div>
+          <div class="form-group">
+            <label class="form-label">Status *</label>
+            <select class="form-input" id="itemStatus" required>
+              <option value="pending">Pending</option>
+              <option value="supplied">Supplied</option>
+              <option value="installed">Installed</option>
+            </select>
+          </div>
         </div>
-        <div class="form-group">
-          <label class="form-label">Remarks</label>
-          <input type="text" class="form-input" id="itemRemarks" placeholder="Optional notes">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Remarks</label>
+            <input type="text" class="form-input" id="itemRemarks" placeholder="Optional notes">
+          </div>
+          <div class="form-group" id="qtyGroup">
+            <label class="form-label">Quantity</label>
+            <input type="number" class="form-input" id="itemQty" min="1" value="1" placeholder="1">
+            <span class="form-hint">Creates multiple identical items</span>
+          </div>
         </div>
-        <h3 class="form-section-title">Floor Breakdown</h3>
-        <div id="floorFields" class="floor-fields"></div>
         <div class="modal__actions">
           <button type="button" class="btn-outline" id="cancelItemBtn">Cancel</button>
           <button type="submit" class="btn-primary">Save Item</button>
