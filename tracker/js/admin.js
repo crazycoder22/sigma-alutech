@@ -77,7 +77,7 @@ function openProject(project) {
   // Subscribe to items
   if (itemsUnsub) itemsUnsub();
   itemsUnsub = onSnapshot(
-    query(collection(db, 'projects', project.id, 'items'), orderBy('flatNo'), orderBy('windowType')),
+    query(collection(db, 'projects', project.id, 'items'), orderBy('windowType')),
     snap => {
       const items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       renderTable(items);
@@ -121,35 +121,40 @@ async function saveProject(e) {
   let projectId = currentProject && document.getElementById('projectModalTitle').textContent === 'Edit Project'
     ? currentProject.id : null;
 
-  const payload = { name, description: desc, floors, updatedAt: serverTimestamp() };
+  try {
+    const payload = { name, description: desc, floors, updatedAt: serverTimestamp() };
 
-  if (projectId) {
-    await updateDoc(doc(db, 'projects', projectId), payload);
-  } else {
-    payload.createdAt = serverTimestamp();
-    const ref = await addDoc(collection(db, 'projects'), payload);
-    projectId = ref.id;
-  }
-
-  // Update customer projectIds
-  const checkedUids = [...document.querySelectorAll('#customerCheckboxes input:checked')].map(i => i.value);
-  for (const u of allUsers.filter(u => u.role === 'customer')) {
-    const has  = (u.projectIds || []).includes(projectId);
-    const want = checkedUids.includes(u.id);
-    if (has !== want) {
-      const newIds = want
-        ? [...(u.projectIds || []), projectId]
-        : (u.projectIds || []).filter(id => id !== projectId);
-      await updateDoc(doc(db, 'users', u.id), { projectIds: newIds });
+    if (projectId) {
+      await updateDoc(doc(db, 'projects', projectId), payload);
+    } else {
+      payload.createdAt = serverTimestamp();
+      const ref = await addDoc(collection(db, 'projects'), payload);
+      projectId = ref.id;
     }
-  }
 
-  closeProjectModal();
-  await loadProjects();
-  await loadUsers();
-  if (projectId) {
-    const p = allProjects.find(p => p.id === projectId);
-    if (p) openProject(p);
+    // Update customer projectIds
+    const checkedUids = [...document.querySelectorAll('#customerCheckboxes input:checked')].map(i => i.value);
+    for (const u of allUsers.filter(u => u.role === 'customer')) {
+      const has  = (u.projectIds || []).includes(projectId);
+      const want = checkedUids.includes(u.id);
+      if (has !== want) {
+        const newIds = want
+          ? [...(u.projectIds || []), projectId]
+          : (u.projectIds || []).filter(id => id !== projectId);
+        await updateDoc(doc(db, 'users', u.id), { projectIds: newIds });
+      }
+    }
+
+    closeProjectModal();
+    await loadProjects();
+    await loadUsers();
+    if (projectId) {
+      const p = allProjects.find(p => p.id === projectId);
+      if (p) openProject(p);
+    }
+  } catch (err) {
+    console.error('Save project failed:', err);
+    alert('Failed to save project: ' + err.message + '\n\nMake sure Firestore security rules are published in the Firebase Console.');
   }
 }
 
@@ -163,7 +168,6 @@ document.getElementById('itemForm').addEventListener('submit', saveItem);
 function openItemModal(item) {
   editingItemId = item ? item.id : null;
   document.getElementById('itemModalTitle').textContent = item ? 'Edit Item' : 'Add Item';
-  document.getElementById('itemFlatNo').value  = item ? item.flatNo      : '';
   document.getElementById('itemType').value    = item ? item.windowType  : '';
   document.getElementById('itemWidth').value   = item ? item.width       : '';
   document.getElementById('itemHeight').value  = item ? item.height      : '';
@@ -200,13 +204,12 @@ function closeItemModal() {
 
 async function saveItem(e) {
   e.preventDefault();
-  const flatNo     = parseInt(document.getElementById('itemFlatNo').value);
   const windowType = document.getElementById('itemType').value.trim().toUpperCase();
   const width      = parseFloat(document.getElementById('itemWidth').value);
   const height     = parseFloat(document.getElementById('itemHeight').value);
   const remarks    = document.getElementById('itemRemarks').value.trim();
 
-  if (!flatNo || !windowType || isNaN(width) || isNaN(height)) return;
+  if (!windowType || isNaN(width) || isNaN(height)) return;
 
   // Collect floorData
   const floorData = {};
@@ -220,17 +223,22 @@ async function saveItem(e) {
   // total = sum of floor totals
   currentFloors.forEach(f => { total += (floorData[f] && floorData[f].total) || 0; });
 
-  const payload = { flatNo, windowType, width, height, remarks, total, floorData, updatedAt: serverTimestamp() };
+  const payload = { windowType, width, height, remarks, total, floorData, updatedAt: serverTimestamp() };
 
-  const colRef = collection(db, 'projects', currentProject.id, 'items');
-  if (editingItemId) {
-    await updateDoc(doc(colRef, editingItemId), payload);
-  } else {
-    await addDoc(colRef, payload);
+  try {
+    const colRef = collection(db, 'projects', currentProject.id, 'items');
+    if (editingItemId) {
+      await updateDoc(doc(colRef, editingItemId), payload);
+    } else {
+      await addDoc(colRef, payload);
+    }
+    // Update project updatedAt
+    await updateDoc(doc(db, 'projects', currentProject.id), { updatedAt: serverTimestamp() });
+    closeItemModal();
+  } catch (err) {
+    console.error('Save failed:', err);
+    alert('Failed to save item: ' + err.message + '\n\nMake sure Firestore security rules are published in the Firebase Console.');
   }
-  // Update project updatedAt
-  await updateDoc(doc(db, 'projects', currentProject.id), { updatedAt: serverTimestamp() });
-  closeItemModal();
 }
 
 async function deleteItem(itemId) {
@@ -259,7 +267,6 @@ function renderTable(items) {
 
   // Build header
   let hRow1 = `<tr>
-    <th rowspan="2">Flat</th>
     <th rowspan="2">Type</th>
     <th rowspan="2">W×H (m)</th>
     <th rowspan="2">Total</th>
@@ -278,7 +285,6 @@ function renderTable(items) {
 
   // Build body
   tbody.innerHTML = '';
-  let prevFlat = null;
   let totTotal = 0, totFixed = 0;
   const floorTotals = {};
   floors.forEach(f => { floorTotals[f] = { total: 0, fixed: 0 }; });
@@ -295,14 +301,9 @@ function renderTable(items) {
       floorTotals[f].fixed += (fd[f] && fd[f].fixed) || 0;
     });
 
-    const isNewFlat = item.flatNo !== prevFlat;
-    prevFlat = item.flatNo;
-
     const tr = document.createElement('tr');
-    if (isNewFlat) tr.classList.add('flat-start');
 
     let html = `
-      <td>${isNewFlat ? item.flatNo : ''}</td>
       <td>${item.windowType}</td>
       <td>${item.width} × ${item.height}</td>
       <td>${overall.total}</td>
@@ -336,7 +337,7 @@ function renderTable(items) {
     const totBalance = totTotal - totFixed;
     const tr = document.createElement('tr');
     tr.className = 'totals-row';
-    let html = `<td colspan="2"><strong>TOTALS</strong></td>
+    let html = `<td><strong>TOTALS</strong></td>
       <td>—</td>
       <td>${totTotal}</td>
       <td class="cell-green">${totFixed}</td>
