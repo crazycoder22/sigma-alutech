@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Building View — Sigma Alutech Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Montserrat:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/tracker.css">
+  <link rel="stylesheet" href="css/visual.css">
+</head>
+<body class="app-page">
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar__brand">
+      <span class="sidebar__logo">SIGMA ALUTECH</span>
+      <span class="sidebar__sub">Building View</span>
+    </div>
+
+    <nav class="sidebar__nav">
+      <a href="admin.html" class="sidebar__tab" style="text-decoration:none;">Dashboard</a>
+      <span class="sidebar__tab active">Visual</span>
+    </nav>
+
+    <div class="sidebar__section" id="tabProjects">
+      <ul class="project-list" id="projectList"></ul>
+    </div>
+
+    <div class="sidebar__footer">
+      <span id="adminEmail" class="sidebar__email"></span>
+      <button class="btn-outline btn-sm" id="signOutBtn">Sign out</button>
+    </div>
+  </aside>
+
+  <!-- Main content -->
+  <main class="main-content">
+
+    <!-- Empty state -->
+    <div class="empty-state" id="emptyState">
+      <div class="empty-state__icon">🏢</div>
+      <h2>Select a project</h2>
+      <p>Choose a project from the sidebar to see its building visualization.</p>
+    </div>
+
+    <!-- Visual view (two panels) -->
+    <div id="visualView" style="display:none;">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title" id="projectName">Project Name</h1>
+          <p class="page-subtitle" id="projectDesc"></p>
+        </div>
+      </div>
+
+      <div class="visual-layout">
+        <!-- LEFT: Building graphic -->
+        <div class="building-panel" id="buildingPanel">
+          <div class="building">
+            <div class="building__roof"></div>
+            <div class="building__floors" id="buildingFloors">
+              <!-- Floors rendered by JS -->
+            </div>
+            <div class="building__base"></div>
+          </div>
+          <div class="building-legend">
+            <div class="legend-item"><span class="legend-dot legend-dot--green"></span> Installed</div>
+            <div class="legend-item"><span class="legend-dot legend-dot--amber"></span> Supplied</div>
+            <div class="legend-item"><span class="legend-dot legend-dot--red"></span> Pending</div>
+          </div>
+        </div>
+
+        <!-- RIGHT: Detail panel -->
+        <div class="detail-panel" id="detailPanel">
+          <div id="detailContent"></div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <script type="module" src="js/visual.js"></script>
+</body>
+</html>
