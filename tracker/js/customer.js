@@ -3,7 +3,7 @@
 // ============================================================
 import { db, requireRole, signOutAndRedirect } from './auth.js';
 import {
-  collection, doc, getDoc, getDocs, onSnapshot, query, orderBy
+  collection, doc, getDoc, getDocs, onSnapshot
 } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
 let currentProject = null;
@@ -67,9 +67,15 @@ function openProject(project) {
 
   if (itemsUnsub) itemsUnsub();
   itemsUnsub = onSnapshot(
-    query(collection(db, 'projects', project.id, 'items'), orderBy('flatNo'), orderBy('windowType')),
+    collection(db, 'projects', project.id, 'items'),
     snap => {
       const items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      // Sort client-side: by flatNo (nulls last), then windowType
+      items.sort((a, b) => {
+        const fa = a.flatNo ?? Infinity, fb = b.flatNo ?? Infinity;
+        if (fa !== fb) return fa - fb;
+        return (a.windowType || '').localeCompare(b.windowType || '');
+      });
       renderSummary(items);
       renderFloorCards(items);
       renderTable(items);
