@@ -20,7 +20,7 @@ backend:
   name: github
   repo: crazycoder22/sigma-alutech
   branch: main
-  # base_url: https://YOUR-OAUTH-GATEWAY.workers.dev   # <-- uncomment after OAuth setup
+  base_url: https://sveltia-cms-auth.lakshmankamathk.workers.dev
 
 # Allows `npx decap-server` to bypass OAuth during local development
 local_backend: true
