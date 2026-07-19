@@ -15,6 +15,9 @@
   <link rel="stylesheet" href="css/layout.css">
   <link rel="stylesheet" href="css/components.css">
   <link rel="stylesheet" href="css/pages.css">
+
+  <!-- Theme (sets data-theme before first paint) -->
+  <script src="js/theme.js"></script>
 </head>
 <body>
 
@@ -30,8 +33,14 @@
         <a href="projects.html" class="nav__link active">Projects</a>
         <a href="index.html#contact" class="nav__link">Contact</a>
       </div>
-      <div class="nav__hamburger" id="hamburger" aria-label="Toggle menu">
-        <span></span><span></span><span></span>
+      <div class="flex-center gap-md">
+        <button class="theme-toggle" data-theme-toggle aria-label="Switch to dark theme" title="Toggle light/dark theme">
+          <svg class="theme-toggle__moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+          <svg class="theme-toggle__sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+        </button>
+        <div class="nav__hamburger" id="hamburger" aria-label="Toggle menu">
+          <span></span><span></span><span></span>
+        </div>
       </div>
     </div>
     <div class="nav__mobile-overlay" id="mobileOverlay"></div>

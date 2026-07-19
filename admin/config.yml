@@ -1,0 +1,128 @@
+# ============================================================
+# Decap CMS configuration — Sigma Alutech
+# Edits data/products.json and data/projects.json via GitHub.
+#
+# ONE-TIME SETUP (required before login works on the live site):
+#   Decap needs an OAuth gateway to sign users in with GitHub.
+#   Easiest free option: deploy https://github.com/sveltia/sveltia-cms-auth
+#   to Cloudflare Workers (click "Deploy to Cloudflare Workers" in its
+#   README), create a GitHub OAuth App, then set base_url below to the
+#   worker URL, e.g.:
+#     base_url: https://sigma-cms-auth.<your-account>.workers.dev
+#
+# LOCAL TESTING (no OAuth needed):
+#   npx decap-server        # in the repo root, then
+#   python3 -m http.server 8080
+#   open http://localhost:8080/admin/
+# ============================================================
+
+backend:
+  name: github
+  repo: crazycoder22/sigma-alutech
+  branch: main
+  # base_url: https://YOUR-OAUTH-GATEWAY.workers.dev   # <-- uncomment after OAuth setup
+
+# Allows `npx decap-server` to bypass OAuth during local development
+local_backend: true
+
+media_folder: "images/uploads"
+public_folder: "images/uploads"
+
+site_url: https://sigmaalutech.in
+logo_url: https://sigmaalutech.in/images/hero/hero-1.svg
+
+collections:
+  - name: content
+    label: "Site Content"
+    files:
+      # ---------------- PRODUCTS ----------------
+      - name: products
+        label: "Products Catalog"
+        file: "data/products.json"
+        format: json
+        fields:
+          - name: categories
+            label: "Product Categories"
+            label_singular: "Category"
+            widget: list
+            summary: "{{fields.name}}"
+            fields:
+              - { name: id, label: "ID (kebab-case, do not change)", widget: string }
+              - { name: name, label: "Name", widget: string }
+              - { name: description, label: "Description", widget: text }
+              - name: products
+                label: "Products"
+                label_singular: "Product"
+                widget: list
+                summary: "{{fields.name}}"
+                fields:
+                  - { name: id, label: "ID (unique, kebab-case)", widget: string }
+                  - { name: name, label: "Name", widget: string }
+                  - { name: series, label: "Series", widget: string }
+                  - { name: topology, label: "Topology (badge, e.g. casement)", widget: string }
+                  - { name: tagline, label: "Tagline (one line, shown on card)", widget: string }
+                  - { name: description, label: "Full Description", widget: text }
+                  - name: features
+                    label: "Features"
+                    widget: list
+                    field: { name: feature, label: "Feature", widget: string }
+                  - name: specifications
+                    label: "Specifications"
+                    widget: keyvalue
+                    key_label: "Spec"
+                    value_label: "Value"
+                  - name: finishes
+                    label: "Finishes"
+                    widget: list
+                    field: { name: finish, label: "Finish", widget: string }
+                  - name: images
+                    label: "Images (first = main image)"
+                    widget: list
+                    field: { name: image, label: "Image", widget: image }
+                  - { name: video, label: "YouTube embed URL (or leave empty)", widget: string, required: false }
+                  - { name: featured, label: "Show on homepage", widget: boolean, default: false }
+
+      # ---------------- PROJECTS ----------------
+      - name: projects
+        label: "Projects Portfolio"
+        file: "data/projects.json"
+        format: json
+        fields:
+          - name: categories
+            label: "Filter Categories (advanced — rarely edit)"
+            label_singular: "Category"
+            widget: list
+            summary: "{{fields.name}}"
+            fields:
+              - { name: id, label: "ID", widget: string }
+              - { name: name, label: "Name", widget: string }
+          - name: projects
+            label: "Projects"
+            label_singular: "Project"
+            widget: list
+            summary: "{{fields.name}} ({{fields.year}})"
+            fields:
+              - { name: id, label: "ID (unique, kebab-case, matches image folder)", widget: string }
+              - { name: name, label: "Project Name", widget: string }
+              - { name: location, label: "Location", widget: string }
+              - { name: architect, label: "Architect (empty if unknown)", widget: string, required: false, default: "" }
+              - { name: year, label: "Year", widget: number, value_type: int, min: 2000, max: 2100 }
+              - name: category
+                label: "Category"
+                widget: select
+                options: [hospitality, residential, commercial, institutional, industrial]
+              - { name: type, label: "Project Type (e.g. 5-Star Hotel)", widget: string }
+              - { name: description, label: "Description", widget: text }
+              - name: productsUsed
+                label: "Products Used"
+                widget: select
+                multiple: true
+                options: [windows, doors, sliding, facades, balustrades, handles]
+              - { name: thumbnail, label: "Thumbnail (card image)", widget: image }
+              - name: images
+                label: "Gallery Images"
+                widget: list
+                required: false
+                field: { name: image, label: "Image", widget: image }
+              - { name: video, label: "YouTube embed URL (or leave empty)", widget: string, required: false }
+              - { name: featured, label: "Show on homepage", widget: boolean, default: false }

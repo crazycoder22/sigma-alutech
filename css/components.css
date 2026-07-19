@@ -14,10 +14,43 @@
 }
 
 .nav.scrolled {
-  background: rgba(10, 10, 10, 0.95);
+  background: var(--nav-bg-scrolled);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   box-shadow: 0 1px 0 var(--border-subtle);
+}
+
+/* Nav sitting on top of the dark hero image (homepage, before scroll):
+   force light text regardless of theme. */
+.nav--overlay:not(.scrolled) .nav__logo-text {
+  color: var(--text-on-image);
+}
+
+.nav--overlay:not(.scrolled) .nav__logo-text span {
+  color: var(--gold-on-image);
+}
+
+.nav--overlay:not(.scrolled) .nav__link {
+  color: var(--text-on-image-secondary);
+}
+
+.nav--overlay:not(.scrolled) .nav__link:hover,
+.nav--overlay:not(.scrolled) .nav__link.active {
+  color: var(--gold-on-image);
+}
+
+.nav--overlay:not(.scrolled) .nav__hamburger span {
+  background: var(--text-on-image);
+}
+
+/* When the mobile menu (light panel) is open, the hamburger sits on it */
+.nav--overlay:not(.scrolled) .nav__hamburger.open span {
+  background: var(--text-primary);
+}
+
+.nav--overlay:not(.scrolled) .theme-toggle {
+  color: var(--text-on-image-secondary);
+  border-color: rgba(255, 255, 255, 0.25);
 }
 
 .nav__inner {
@@ -145,7 +178,7 @@
   gap: var(--space-lg);
   transition: right var(--transition-base);
   z-index: var(--z-nav);
-  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--shadow-lg);
 }
 
 .nav__mobile.open {
@@ -202,12 +235,12 @@
 
 .btn--primary {
   background: var(--gold-primary);
-  color: var(--bg-primary);
+  color: var(--text-on-gold);
 }
 
 .btn--primary:hover {
-  background: var(--gold-light);
-  color: var(--bg-primary);
+  background: var(--gold-dark);
+  color: var(--text-on-gold);
   box-shadow: var(--shadow-gold);
 }
 
@@ -219,7 +252,7 @@
 
 .btn--outline:hover {
   background: var(--gold-primary);
-  color: var(--bg-primary);
+  color: var(--text-on-gold);
 }
 
 .btn--small {
@@ -366,7 +399,7 @@
 
 .filter-btn.active {
   background: var(--gold-primary);
-  color: var(--bg-primary);
+  color: var(--text-on-gold);
   border-color: var(--gold-primary);
 }
 
@@ -579,7 +612,7 @@
   top: var(--space-xl);
   right: var(--space-xl);
   font-size: 2rem;
-  color: var(--text-primary);
+  color: var(--text-on-image);
   cursor: pointer;
   z-index: 1;
   width: 48px;
@@ -591,7 +624,7 @@
 }
 
 .lightbox__close:hover {
-  color: var(--gold-primary);
+  color: var(--gold-on-image);
 }
 
 .lightbox__nav {
@@ -599,14 +632,14 @@
   top: 50%;
   transform: translateY(-50%);
   font-size: 2rem;
-  color: var(--text-primary);
+  color: var(--text-on-image);
   cursor: pointer;
   padding: var(--space-lg);
   transition: color var(--transition-fast);
 }
 
 .lightbox__nav:hover {
-  color: var(--gold-primary);
+  color: var(--gold-on-image);
 }
 
 .lightbox__prev { left: 0; }
@@ -618,7 +651,7 @@
   left: 50%;
   transform: translateX(-50%);
   font-size: var(--fs-small);
-  color: var(--text-secondary);
+  color: var(--text-on-image-secondary);
 }
 
 /* ---- Feature Item ---- */
@@ -724,3 +757,37 @@
   color: var(--text-muted);
   font-style: italic;
 }
+
+/* ---- Theme Toggle ---- */
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 50%;
+  color: var(--text-secondary);
+  background: transparent;
+  cursor: pointer;
+  transition: color var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.theme-toggle:hover {
+  color: var(--gold-primary);
+  border-color: var(--border-gold);
+  transform: rotate(15deg);
+}
+
+.theme-toggle svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* Show moon in light mode (click -> dark), sun in dark mode (click -> light) */
+.theme-toggle__sun { display: none; }
+.theme-toggle__moon { display: block; }
+
+[data-theme="dark"] .theme-toggle__sun { display: block; }
+[data-theme="dark"] .theme-toggle__moon { display: none; }

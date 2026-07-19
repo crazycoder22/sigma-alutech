@@ -1,30 +1,47 @@
 /* ============================================
    SIGMA ALUTECH - Design Tokens
+   Light theme is the default (:root).
+   Dark theme overrides live under [data-theme="dark"].
    ============================================ */
 
 :root {
-  /* Core Palette */
-  --bg-primary: #0a0a0a;
-  --bg-secondary: #111111;
-  --bg-elevated: #1a1a1a;
-  --bg-card: #151515;
+  /* Core Palette — Light (default) */
+  --bg-primary: #faf9f6;
+  --bg-secondary: #f1efe8;
+  --bg-elevated: #ffffff;
+  --bg-card: #ffffff;
 
-  --gold-primary: #c9a84c;
-  --gold-light: #e8d48b;
-  --gold-dark: #8a6f2f;
-  --gold-subtle: rgba(201, 168, 76, 0.1);
-  --gold-glow: rgba(201, 168, 76, 0.15);
+  --gold-primary: #8f7026;
+  --gold-light: #c9a84c;
+  --gold-dark: #6e5820;
+  --gold-subtle: rgba(143, 112, 38, 0.08);
+  --gold-glow: rgba(143, 112, 38, 0.12);
 
-  --text-primary: #f5f5f5;
-  --text-secondary: #a0a0a0;
-  --text-muted: #666666;
+  --text-primary: #1c1a15;
+  --text-secondary: #5a564c;
+  --text-muted: #8d887b;
   --text-accent: var(--gold-primary);
 
-  --border-subtle: rgba(255, 255, 255, 0.06);
-  --border-gold: rgba(201, 168, 76, 0.2);
+  --border-subtle: rgba(0, 0, 0, 0.08);
+  --border-gold: rgba(143, 112, 38, 0.3);
 
   --overlay-dark: rgba(0, 0, 0, 0.7);
   --overlay-darker: rgba(0, 0, 0, 0.85);
+
+  /* Fixed colors for text over photos/dark imagery (same in both themes) */
+  --text-on-image: #f5f5f5;
+  --text-on-image-secondary: rgba(255, 255, 255, 0.78);
+  --text-on-image-muted: rgba(255, 255, 255, 0.55);
+  --gold-on-image: #c9a84c;
+
+  /* Text on gold surfaces (buttons, active filters) */
+  --text-on-gold: #ffffff;
+
+  /* Nav */
+  --nav-bg-scrolled: rgba(250, 249, 246, 0.95);
+
+  /* Map */
+  --map-filter: grayscale(0.2) contrast(1.02);
 
   /* Typography */
   --font-heading: 'Montserrat', sans-serif;
@@ -76,10 +93,10 @@
   --radius-xl: 16px;
 
   /* Shadows */
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
-  --shadow-gold: 0 8px 32px rgba(201, 168, 76, 0.15);
+  --shadow-sm: 0 2px 8px rgba(28, 26, 21, 0.08);
+  --shadow-md: 0 4px 16px rgba(28, 26, 21, 0.1);
+  --shadow-lg: 0 8px 32px rgba(28, 26, 21, 0.14);
+  --shadow-gold: 0 8px 32px rgba(143, 112, 38, 0.18);
 
   /* Transitions */
   --transition-fast: 150ms ease;
@@ -98,4 +115,38 @@
 
   /* Nav height */
   --nav-height: 72px;
+}
+
+/* ============================================
+   Dark theme
+   ============================================ */
+:root[data-theme="dark"] {
+  --bg-primary: #0a0a0a;
+  --bg-secondary: #111111;
+  --bg-elevated: #1a1a1a;
+  --bg-card: #151515;
+
+  --gold-primary: #c9a84c;
+  --gold-light: #e8d48b;
+  --gold-dark: #8a6f2f;
+  --gold-subtle: rgba(201, 168, 76, 0.1);
+  --gold-glow: rgba(201, 168, 76, 0.15);
+
+  --text-primary: #f5f5f5;
+  --text-secondary: #a0a0a0;
+  --text-muted: #666666;
+
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-gold: rgba(201, 168, 76, 0.2);
+
+  --text-on-gold: #0a0a0a;
+
+  --nav-bg-scrolled: rgba(10, 10, 10, 0.95);
+
+  --map-filter: grayscale(0.8) brightness(0.6) contrast(1.2);
+
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
+  --shadow-gold: 0 8px 32px rgba(201, 168, 76, 0.15);
 }

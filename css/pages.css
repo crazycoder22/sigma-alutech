@@ -67,7 +67,7 @@
   font-weight: var(--fw-semibold);
   letter-spacing: var(--ls-wider);
   text-transform: uppercase;
-  color: var(--gold-primary);
+  color: var(--gold-on-image);
   margin-bottom: var(--space-lg);
   display: flex;
   align-items: center;
@@ -78,13 +78,13 @@
 .hero__partner-line {
   width: 30px;
   height: 1px;
-  background: var(--gold-primary);
+  background: var(--gold-on-image);
 }
 
 .hero__title {
   font-size: var(--fs-display);
   font-weight: var(--fw-bold);
-  color: var(--text-primary);
+  color: var(--text-on-image);
   margin-bottom: var(--space-md);
   letter-spacing: var(--ls-tight);
 }
@@ -92,7 +92,7 @@
 .hero__tagline {
   font-size: clamp(1rem, 2vw, 1.25rem);
   font-weight: var(--fw-light);
-  color: var(--text-secondary);
+  color: var(--text-on-image-secondary);
   margin-bottom: var(--space-2xl);
   line-height: var(--lh-loose);
 }
@@ -114,7 +114,7 @@
   flex-direction: column;
   align-items: center;
   gap: var(--space-sm);
-  color: var(--text-muted);
+  color: var(--text-on-image-muted);
   font-size: var(--fs-xs);
   letter-spacing: var(--ls-wider);
   text-transform: uppercase;
@@ -214,18 +214,18 @@
   font-family: var(--font-heading);
   font-size: var(--fs-h4);
   font-weight: var(--fw-semibold);
-  color: var(--text-primary);
+  color: var(--text-on-image);
   margin-bottom: var(--space-xs);
 }
 
 .category-card__desc {
   font-size: var(--fs-small);
-  color: var(--text-secondary);
+  color: var(--text-on-image-secondary);
   margin-bottom: var(--space-sm);
 }
 
 .category-card__arrow {
-  color: var(--gold-primary);
+  color: var(--gold-on-image);
   font-size: var(--fs-small);
   font-weight: var(--fw-semibold);
   display: flex;
@@ -368,7 +368,7 @@
   width: 100%;
   height: 100%;
   border: 0;
-  filter: grayscale(0.8) brightness(0.6) contrast(1.2);
+  filter: var(--map-filter);
 }
 
 .contact__whatsapp {
@@ -571,7 +571,7 @@
   font-size: var(--fs-xs);
   text-transform: uppercase;
   letter-spacing: var(--ls-wider);
-  color: var(--gold-primary);
+  color: var(--gold-on-image);
   margin-bottom: var(--space-xs);
 }
 
@@ -579,12 +579,12 @@
   font-family: var(--font-heading);
   font-size: var(--fs-h4);
   font-weight: var(--fw-semibold);
-  color: var(--text-primary);
+  color: var(--text-on-image);
 }
 
 .project-card__meta {
   font-size: var(--fs-small);
-  color: var(--text-secondary);
+  color: var(--text-on-image-secondary);
   margin-top: var(--space-xs);
 }
 

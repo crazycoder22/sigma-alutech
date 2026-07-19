@@ -3,3 +3,8 @@
 *.pdf
 FY 65 Tilt & Turn Window.jpg
 Chancery Pavillion.png
+
+# Node / tests
+node_modules/
+test-results/
+playwright-report/

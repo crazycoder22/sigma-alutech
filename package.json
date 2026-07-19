@@ -1,0 +1,19 @@
+{
+  "name": "sigma-alutech",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Sigma Alutech website — static site with JSON-driven content",
+  "scripts": {
+    "serve": "python3 -m http.server 8080",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "test:all": "vitest run && playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.45.0",
+    "jsdom": "^24.1.0",
+    "js-yaml": "^4.1.0",
+    "vitest": "^2.0.0"
+  }
+}

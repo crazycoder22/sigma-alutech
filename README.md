@@ -194,6 +194,43 @@ The video will appear at the bottom of the product/project detail modal.
 
 ---
 
+## Theme (Light / Dark)
+
+The site ships with a **light theme by default** and a dark/light toggle button in the navigation bar (moon/sun icon). The visitor's choice is saved in their browser (`localStorage` key `sigma-theme`) and persists across pages and visits.
+
+For developers:
+- All colors are design tokens in `css/variables.css`. `:root` holds the light palette; `:root[data-theme="dark"]` holds the dark overrides.
+- Text that sits on photos (hero, project/category cards) uses fixed `--text-on-image` tokens so it stays readable in both themes.
+- `js/theme.js` sets the `data-theme` attribute before first paint and wires up any button with a `data-theme-toggle` attribute.
+
+---
+
+## Editing Content in the Browser (Decap CMS)
+
+The site includes [Decap CMS](https://decapcms.org) at **`/admin/`** — a friendly editor for `data/products.json` and `data/projects.json` with image uploads (saved to `images/uploads/`). Every save is a commit to this repo, so the site redeploys automatically.
+
+**One-time setup before login works on the live site** (needs ~15 minutes, done once):
+
+1. Deploy the free OAuth gateway [sveltia-cms-auth](https://github.com/sveltia/sveltia-cms-auth) to Cloudflare Workers (button in its README).
+2. Create a GitHub OAuth App (Settings → Developer settings → OAuth Apps) with the callback URL shown in the sveltia-cms-auth README, and give the worker its client ID/secret.
+3. In `admin/config.yml`, uncomment `base_url:` and set it to your worker URL.
+
+**Local testing without OAuth:** run `npx decap-server` in the repo root alongside `python3 -m http.server 8080`, then open `http://localhost:8080/admin/`.
+
+---
+
+## Tests
+
+Requires Node.js (`npm install` once).
+
+| Command | What it runs |
+|---------|--------------|
+| `npm test` | Unit tests (theme logic) + integration tests (JSON schema validity, image files exist, CSS token consistency, CMS config sanity) |
+| `npm run test:e2e` | Playwright browser tests (theme default/toggle/persistence, catalog rendering, filters, modals, admin page) — run `npx playwright install chromium` once first |
+| `npm run test:all` | Everything |
+
+---
+
 ## Local Development
 
 To preview the site locally:
