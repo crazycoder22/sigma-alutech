@@ -1,0 +1,125 @@
+import 'server-only';
+import { asc, eq } from 'drizzle-orm';
+import {
+  getDb,
+  categories,
+  products,
+  projectCategories,
+  projects,
+  type Category,
+  type Product,
+  type Project,
+  type ProjectCategory,
+} from '@/db';
+import type { ProductInput, ProjectInput } from './validation';
+
+export interface CategoryWithProducts extends Category {
+  products: Product[];
+}
+
+export async function getCatalog(): Promise<CategoryWithProducts[]> {
+  const db = getDb();
+  const cats = await db
+    .select()
+    .from(categories)
+    .orderBy(asc(categories.sortOrder), asc(categories.id));
+  const prods = await db
+    .select()
+    .from(products)
+    .orderBy(asc(products.sortOrder), asc(products.id));
+  return cats.map((c) => ({
+    ...c,
+    products: prods.filter((p) => p.categoryId === c.id),
+  }));
+}
+
+export async function getFeaturedProducts(): Promise<Product[]> {
+  const db = getDb();
+  return db
+    .select()
+    .from(products)
+    .where(eq(products.featured, true))
+    .orderBy(asc(products.sortOrder), asc(products.id));
+}
+
+export async function getProjectCategories(): Promise<ProjectCategory[]> {
+  const db = getDb();
+  return db
+    .select()
+    .from(projectCategories)
+    .orderBy(asc(projectCategories.sortOrder), asc(projectCategories.id));
+}
+
+export interface ProjectWithCategory extends Project {
+  categorySlug: string;
+  categoryName: string;
+}
+
+export async function getProjects(): Promise<ProjectWithCategory[]> {
+  const db = getDb();
+  const rows = await db
+    .select({
+      project: projects,
+      categorySlug: projectCategories.slug,
+      categoryName: projectCategories.name,
+    })
+    .from(projects)
+    .innerJoin(projectCategories, eq(projects.categoryId, projectCategories.id))
+    .orderBy(asc(projects.sortOrder), asc(projects.id));
+  return rows.map((r) => ({
+    ...r.project,
+    categorySlug: r.categorySlug,
+    categoryName: r.categoryName,
+  }));
+}
+
+export async function getFeaturedProjects(): Promise<ProjectWithCategory[]> {
+  const all = await getProjects();
+  return all.filter((p) => p.featured).slice(0, 6);
+}
+
+// ---------- Admin mutations ----------
+
+export async function createProduct(input: ProductInput): Promise<Product> {
+  const db = getDb();
+  const [row] = await db.insert(products).values(input).returning();
+  return row;
+}
+
+export async function updateProduct(id: number, input: ProductInput): Promise<Product | null> {
+  const db = getDb();
+  const [row] = await db
+    .update(products)
+    .set({ ...input, updatedAt: new Date() })
+    .where(eq(products.id, id))
+    .returning();
+  return row ?? null;
+}
+
+export async function deleteProduct(id: number): Promise<Product | null> {
+  const db = getDb();
+  const [row] = await db.delete(products).where(eq(products.id, id)).returning();
+  return row ?? null;
+}
+
+export async function createProject(input: ProjectInput): Promise<Project> {
+  const db = getDb();
+  const [row] = await db.insert(projects).values(input).returning();
+  return row;
+}
+
+export async function updateProject(id: number, input: ProjectInput): Promise<Project | null> {
+  const db = getDb();
+  const [row] = await db
+    .update(projects)
+    .set({ ...input, updatedAt: new Date() })
+    .where(eq(projects.id, id))
+    .returning();
+  return row ?? null;
+}
+
+export async function deleteProject(id: number): Promise<Project | null> {
+  const db = getDb();
+  const [row] = await db.delete(projects).where(eq(projects.id, id)).returning();
+  return row ?? null;
+}

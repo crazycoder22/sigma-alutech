@@ -1,5 +1,10 @@
 # Sigma Alutech Website
 
+> **⚠️ This static site is being replaced.** The new dynamic website (Next.js +
+> Postgres + Vercel Blob, with a full admin panel at `/admin`) lives in
+> [`web/`](web/README.md). This root site keeps serving on GitHub Pages until
+> the domain is switched to Vercel — see `web/README.md` for the deploy guide.
+
 Static website for **Sigma Alutech** (formerly Ravi Enterprises) — an aluminium fabrication company in Bangalore and authorized **Technal** (France) franchisee via Hydro BS India.
 
 **Tech stack:** Plain HTML + CSS + Vanilla JS — no frameworks, no build tools.
