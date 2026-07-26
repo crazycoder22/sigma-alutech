@@ -20,10 +20,9 @@ test.describe('Home', () => {
     await page.goto('/');
     await expect(page.locator('.hero__title')).toContainText('framed in aluminium');
     await expect(page.locator('.eyebrow').first()).toContainText('Authorized Technal Partner');
-    // Stats read live counts, so just assert the strip rendered with 3 cells.
-    await expect(page.locator('.stats .stat')).toHaveCount(3);
+    // The band carries four figures on both layouts.
+    await expect(page.locator('.stats--band .stat')).toHaveCount(4);
     await expect(page.locator('.rail .mini-card').first()).toBeVisible();
-    await expect(page.locator('.feature-project')).toBeVisible();
   });
 
   test('hero copy stays light on the ink block in light theme', async ({ page }) => {
@@ -35,13 +34,38 @@ test.describe('Home', () => {
     expect(color).toBe('rgb(247, 243, 234)');
   });
 
+  test('category split lists every category with its system count', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/');
+    const rows = page.locator('.cat-row');
+    const catalog = await (await page.request.get('/api/catalog')).json();
+    await expect(rows).toHaveCount(catalog.categories.length);
+    // First row's count matches the catalogue.
+    const first = catalog.categories[0];
+    await expect(rows.first()).toContainText(first.name);
+    await expect(rows.first()).toContainText(String(first.products.length));
+    // And it deep-links into the filtered products page.
+    await rows.first().click();
+    await page.waitForURL(/\/products\?category=/);
+  });
+
+  test('featured project mosaic links through to the project', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/');
+    const lead = page.locator('.mosaic__lead');
+    await expect(lead).toBeVisible();
+    await lead.click();
+    await page.waitForURL('**/projects/**');
+    await expect(page.locator('.detail-hero__title')).not.toHaveText('');
+  });
+
   test('featured product card navigates to its detail page', async ({ page }) => {
     await page.goto('/');
     const card = page.locator('.rail .mini-card').first();
     const name = await card.locator('.mini-card__title').innerText();
     await card.click();
     await page.waitForURL('**/products/**');
-    await expect(page.locator('.detail__title')).toHaveText(name);
+    await expect(page.locator('.pd__title')).toHaveText(name);
   });
 });
 
@@ -84,11 +108,18 @@ test.describe('Products', () => {
     await page.goto('/products');
     await page.locator('#productsGrid .card').first().click();
     await page.waitForURL('**/products/**');
-    await expect(page.locator('.detail__title')).not.toHaveText('');
+    await expect(page.locator('.pd__title')).not.toHaveText('');
     await expect(page.locator('.breadcrumb')).toContainText('Products');
     await expect(page.locator('.feature-list li').first()).toBeVisible();
     await expect(page.locator('.spec-grid .spec').first()).toBeVisible();
     await expect(page.locator('.finish').first()).toBeVisible();
+  });
+
+  test('detail page lists projects that used the category', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/products/casement-window-fy65');
+    await expect(page.locator('.related__title')).toContainText('Used in these projects');
+    await expect(page.locator('.related__grid .project-card').first()).toBeVisible();
   });
 
   test('unknown product slug returns 404', async ({ page }) => {
@@ -104,8 +135,20 @@ test.describe('Projects', () => {
     await expect(card).toBeVisible();
     await card.click();
     await page.waitForURL('**/projects/**');
-    await expect(page.locator('.detail__title')).not.toHaveText('');
-    await expect(page.locator('.spec-grid .spec').first()).toBeVisible();
+    // The hero carries the title, with the facts in the side panel.
+    await expect(page.locator('.detail-hero__title')).not.toHaveText('');
+    await expect(page.locator('.meta-panel__row').first()).toBeVisible();
+    await expect(page.locator('.cta-band__title')).toContainText('A project like this');
+  });
+
+  test('next-project link moves to another project', async ({ page }) => {
+    await page.goto('/projects');
+    await page.locator('#projectsGrid .project-card').first().click();
+    await page.waitForURL('**/projects/**');
+    const first = await page.locator('.detail-hero__title').innerText();
+    await page.getByRole('link', { name: /Next project/ }).click();
+    await page.waitForURL('**/projects/**');
+    await expect(page.locator('.detail-hero__title')).not.toHaveText(first);
   });
 
   test('unknown project slug returns 404', async ({ page }) => {
@@ -117,11 +160,14 @@ test.describe('Projects', () => {
 test.describe('About', () => {
   test('renders intro, partnership panel, stats and contact block', async ({ page }) => {
     await page.goto('/about');
-    await expect(page.locator('.page-intro__title')).toContainText('aluminium craft');
+    await expect(page.locator('.about-intro__title')).toContainText('aluminium craft');
     // Regression guard: JSX used to swallow the space after an expression here.
-    await expect(page.locator('.page-intro__lead')).toContainText('Sigma Alutech fabricates');
-    await expect(page.locator('.about-card__title')).toContainText('Technal');
-    await expect(page.locator('.stats--quad .stat')).toHaveCount(4);
+    await expect(page.locator('.about-intro__text').first()).toContainText(
+      'Sigma Alutech fabricates'
+    );
+    await expect(page.locator('.about-panel__title')).toContainText('Technal');
+    await expect(page.locator('.stats--band .stat')).toHaveCount(4);
+    await expect(page.locator('.step')).toHaveCount(4);
     await expect(page.locator('#contact')).toBeVisible();
   });
 });
@@ -139,11 +185,34 @@ test.describe('Navigation', () => {
     await expect(toggle).toHaveAttribute('aria-expanded', 'false');
   });
 
-  test('desktop shows inline links instead of the drawer toggle', async ({ page }) => {
-    await page.setViewportSize({ width: 1280, height: 900 });
+  test('desktop shows inline links and a quote button, no drawer toggle', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/');
     await expect(page.locator('.nav__links .nav__link').first()).toBeVisible();
+    await expect(page.locator('.nav__cta')).toBeVisible();
     await expect(page.locator('.nav__toggle')).toBeHidden();
+  });
+
+  test('the bar adapts: over the hero, ink on projects, light elsewhere', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+
+    await page.goto('/');
+    await expect(page.locator('#nav')).toHaveClass(/nav--over/);
+    await expect(page.locator('#nav')).toHaveClass(/nav--dark/);
+
+    await page.goto('/projects');
+    await expect(page.locator('#nav')).toHaveClass(/nav--ink/);
+
+    await page.goto('/products');
+    await expect(page.locator('#nav')).not.toHaveClass(/nav--dark/);
+  });
+
+  test('the hero bar turns solid once scrolled', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/');
+    await expect(page.locator('#nav')).not.toHaveClass(/scrolled/);
+    await page.evaluate(() => window.scrollTo(0, 400));
+    await expect(page.locator('#nav')).toHaveClass(/scrolled/);
   });
 });
 
@@ -350,7 +419,7 @@ test.describe('Admin product CRUD (full lifecycle)', () => {
 
     // ---- Verify on the public site ----
     await page.goto(`/products/${slug}`);
-    await expect(page.locator('.detail__title')).toHaveText(name);
+    await expect(page.locator('.pd__title')).toHaveText(name);
     await expect(page.locator('.video iframe')).toHaveAttribute(
       'src',
       'https://www.youtube.com/embed/tu9WlspEjo0'

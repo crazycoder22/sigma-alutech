@@ -5,10 +5,12 @@ import { useEffect, useState } from 'react';
 interface Props {
   images: string[];
   alt: string;
+  /** Tall lead frame beside two stacked, as on project detail. */
+  mosaic?: boolean;
 }
 
 /** Image grid with a full-screen lightbox (arrow keys + escape). */
-export function Gallery({ images, alt }: Props) {
+export function Gallery({ images, alt, mosaic = false }: Props) {
   const [index, setIndex] = useState<number | null>(null);
   const open = index !== null;
 
@@ -34,7 +36,7 @@ export function Gallery({ images, alt }: Props) {
 
   return (
     <>
-      <div className="gallery" data-testid="gallery">
+      <div className={`gallery${mosaic ? ' gallery--mosaic' : ''}`} data-testid="gallery">
         {images.map((src, i) => (
           <div
             key={`${src}-${i}`}

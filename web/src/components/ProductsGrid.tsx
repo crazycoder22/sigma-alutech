@@ -28,65 +28,74 @@ export function ProductsGrid({ categories, initialCategory }: Props) {
 
   return (
     <>
-      <div className="filters" id="productFilters">
-        <button
-          className={`filter-btn${active === 'all' ? ' active' : ''}`}
-          data-category="all"
-          onClick={() => setActive('all')}
-        >
-          All
-        </button>
-        {categories.map((c) => (
-          <button
-            key={c.slug}
-            className={`filter-btn${active === c.slug ? ' active' : ''}`}
-            data-category={c.slug}
-            onClick={() => setActive(c.slug)}
-          >
-            {c.name}
-          </button>
-        ))}
-      </div>
-
-      <div className="card-grid" id="productsGrid">
-        {products.map((product) => (
-          <Link key={product.slug} href={`/products/${product.slug}`} className="card">
-            <div className="media media--zoom card__media">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={product.images[0] ?? ''} alt={product.name} loading="lazy" />
-              {product.topology ? (
-                <span className="media__badge">{titleCase(product.topology)}</span>
-              ) : null}
-            </div>
-            <div className="card__body">
-              <h3 className="card__title">{product.name}</h3>
-              <p className="card__text">{product.tagline}</p>
-              {product.finishes.length ? (
-                <div className="card__tags">
-                  {product.finishes.slice(0, 3).map((f) => (
-                    <span key={f} className="tag">{f}</span>
-                  ))}
-                </div>
-              ) : null}
-              <div className="card__footer">
-                <span className="arrow-link">
-                  View details <span>→</span>
-                </span>
-                {product.videoUrl ? (
-                  <span className="tag">▶ Video</span>
-                ) : null}
-              </div>
-            </div>
-          </Link>
-        ))}
-      </div>
-
-      {products.length === 0 ? (
-        <div className="no-results">
-          <div className="no-results__icon">⌕</div>
-          <p>No products in this category yet.</p>
+      <div className="filter-band">
+        <div className="container">
+          <div className="filters" id="productFilters">
+            <button
+              className={`filter-btn${active === 'all' ? ' active' : ''}`}
+              data-category="all"
+              onClick={() => setActive('all')}
+            >
+              All products
+            </button>
+            {categories.map((c) => (
+              <button
+                key={c.slug}
+                className={`filter-btn${active === c.slug ? ' active' : ''}`}
+                data-category={c.slug}
+                onClick={() => setActive(c.slug)}
+              >
+                {c.name}
+              </button>
+            ))}
+            <span className="filters__count">
+              {products.length} product{products.length === 1 ? '' : 's'}
+            </span>
+          </div>
         </div>
-      ) : null}
+      </div>
+
+      <section className="section">
+        <div className="container">
+          <div className="card-grid" id="productsGrid">
+            {products.map((product) => (
+              <Link key={product.slug} href={`/products/${product.slug}`} className="card">
+                <div className="media media--zoom card__media">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={product.images[0] ?? ''} alt={product.name} loading="lazy" />
+                  {product.topology ? (
+                    <span className="media__badge">{titleCase(product.topology)}</span>
+                  ) : null}
+                </div>
+                <div className="card__body">
+                  <h3 className="card__title">{product.name}</h3>
+                  <p className="card__text">{product.tagline}</p>
+                  {product.finishes.length ? (
+                    <div className="card__tags">
+                      {product.finishes.slice(0, 3).map((f) => (
+                        <span key={f} className="tag">{f}</span>
+                      ))}
+                    </div>
+                  ) : null}
+                  <div className="card__footer">
+                    <span className="arrow-link">
+                      View details <span>→</span>
+                    </span>
+                    {product.videoUrl ? <span className="tag">▶ Video</span> : null}
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+
+          {products.length === 0 ? (
+            <div className="no-results">
+              <div className="no-results__icon">⌕</div>
+              <p>No products in this category yet.</p>
+            </div>
+          ) : null}
+        </div>
+      </section>
     </>
   );
 }

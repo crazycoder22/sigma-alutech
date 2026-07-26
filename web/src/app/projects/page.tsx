@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 import { getProjectCategories, getProjects } from '@/lib/catalog';
 import { ProjectsGrid } from '@/components/ProjectsGrid';
-import { Enquiry } from '@/components/Enquiry';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,20 +18,20 @@ export default async function ProjectsPage() {
 
   return (
     <>
-      <section className="container">
-        <div className="page-intro">
-          <span className="eyebrow">Our portfolio</span>
-          <h1 className="page-intro__title">Projects that define us</h1>
-          <p className="page-intro__lead">
-            Five-star hotels to luxury villas and industrial plants — {projects.length}{' '}
-            landmark projects over 25 years.
+      <section className="intro-band intro-band--ink">
+        <div className="container intro-band__grid">
+          <div className="intro-band__head">
+            <span className="eyebrow">Our portfolio</span>
+            <h1 className="intro-band__title">Projects that define us</h1>
+          </div>
+          <p className="intro-band__lead">
+            From five-star hotels to luxury villas and industrial facilities — over 25
+            years of excellence across {projects.length} landmark projects.
           </p>
         </div>
-
-        <ProjectsGrid categories={categories} projects={projects} />
       </section>
 
-      <Enquiry />
+      <ProjectsGrid categories={categories} projects={projects} />
     </>
   );
 }

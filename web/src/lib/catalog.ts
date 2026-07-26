@@ -125,6 +125,33 @@ export async function getProjectBySlug(
   };
 }
 
+/**
+ * Projects that list this product's category in `productsUsed`.
+ * The data records categories rather than individual systems, so this
+ * is "projects that used something from this category".
+ */
+export async function getProjectsUsingCategory(
+  categorySlug: string,
+  limit = 3
+): Promise<ProjectWithCategory[]> {
+  const all = await getProjects();
+  return all
+    .filter((p) => p.productsUsed.includes(categorySlug))
+    .sort((a, b) => b.year - a.year)
+    .slice(0, limit);
+}
+
+/** The next project in portfolio order, wrapping at the end. */
+export async function getAdjacentProject(
+  slug: string
+): Promise<ProjectWithCategory | null> {
+  const all = (await getProjects()).sort((a, b) => b.year - a.year);
+  if (all.length < 2) return null;
+  const index = all.findIndex((p) => p.slug === slug);
+  if (index === -1) return all[0];
+  return all[(index + 1) % all.length];
+}
+
 /** Headline numbers shown on the home and about pages. */
 export async function getSiteStats(): Promise<{
   projects: number;

@@ -9,22 +9,34 @@ import { ThemeToggle } from './ThemeToggle';
 export function Nav() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const [lastPath, setLastPath] = useState(pathname);
 
-  // Home leads with the ink hero, so its bar is dark in both themes.
-  const isHome = pathname === '/';
   const isAdmin = pathname.startsWith('/admin');
+  // Pages that lead with a full-bleed photograph carry the nav on top of it.
+  const overHero = pathname === '/' || /^\/projects\/[^/]+$/.test(pathname);
+  // The projects index opens on an ink band, so the bar matches it.
+  const onInk = pathname === '/projects';
 
-  // Close the drawer on any navigation, including back/forward.
+  // Reset per-route state on navigation, including back/forward.
   if (pathname !== lastPath) {
     setLastPath(pathname);
     setOpen(false);
+    setScrolled(false);
   }
 
   useEffect(() => {
     document.body.classList.toggle('no-scroll', open);
     return () => document.body.classList.remove('no-scroll');
   }, [open]);
+
+  useEffect(() => {
+    if (!overHero) return;
+    const onScroll = () => setScrolled(window.scrollY > 80);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, [overHero]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
@@ -34,21 +46,38 @@ export function Nav() {
 
   if (isAdmin) return null; // the admin area has its own chrome
 
-  const isActive = (href: string) =>
-    href.startsWith('/#') || href.includes('#')
-      ? pathname === href.split('#')[0]
-      : pathname === href || pathname.startsWith(`${href}/`);
+  const isActive = (href: string) => {
+    const base = href.split('#')[0];
+    if (base === '/') return pathname === '/';
+    return pathname === base || pathname.startsWith(`${base}/`);
+  };
+
+  // Dark chrome whenever the bar sits on ink or on a photograph.
+  const dark = onInk || (overHero && !scrolled);
+
+  const classes = [
+    'nav',
+    overHero ? 'nav--over' : '',
+    onInk ? 'nav--ink' : '',
+    dark ? 'nav--dark' : '',
+    scrolled ? 'scrolled' : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
 
   return (
     <>
-      <nav className={`nav${isHome ? ' nav--ink' : ''}`} id="nav">
+      <nav className={classes} id="nav">
         <div className="container nav__inner">
           <Link href="/" className="nav__logo">
             SIGMA <span>ALUTECH</span>
           </Link>
 
           <div className="nav__links">
-            {NAV_LINKS.map((l) => (
+            <Link href="/" className={`nav__link${isActive('/') ? ' active' : ''}`}>
+              Home
+            </Link>
+            {NAV_LINKS.filter((l) => !l.href.includes('#')).map((l) => (
               <Link
                 key={l.href}
                 href={l.href}
@@ -61,6 +90,9 @@ export function Nav() {
 
           <div className="nav__actions">
             <ThemeToggle />
+            <a className="btn btn--small nav__cta" href={quoteHref()}>
+              Get a quote
+            </a>
             <button
               className="nav__toggle"
               aria-label={open ? 'Close menu' : 'Open menu'}

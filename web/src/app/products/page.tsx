@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 import { getCatalog } from '@/lib/catalog';
 import { ProductsGrid } from '@/components/ProductsGrid';
-import { Enquiry } from '@/components/Enquiry';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,20 +19,20 @@ export default async function ProductsPage({
 
   return (
     <>
-      <section className="container">
-        <div className="page-intro">
-          <span className="eyebrow">Our products</span>
-          <h1 className="page-intro__title">Premium aluminium systems</h1>
-          <p className="page-intro__lead">
-            Technal-certified windows, doors, facades and balustrades — engineered for
-            performance and beauty.
+      <section className="intro-band">
+        <div className="container intro-band__grid">
+          <div className="intro-band__head">
+            <span className="eyebrow">Our products</span>
+            <h1 className="intro-band__title">Premium aluminium systems</h1>
+          </div>
+          <p className="intro-band__lead">
+            A comprehensive range of Technal-certified aluminium solutions. From windows
+            and doors to facades and balustrades — engineered for performance and beauty.
           </p>
         </div>
-
-        <ProductsGrid categories={categories} initialCategory={params.category} />
       </section>
 
-      <Enquiry />
+      <ProductsGrid categories={categories} initialCategory={params.category} />
     </>
   );
 }

@@ -1,11 +1,9 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { getProjectBySlug } from '@/lib/catalog';
+import { getAdjacentProject, getCatalog, getProjectBySlug } from '@/lib/catalog';
 import { Gallery } from '@/components/Gallery';
-import { ShareButton } from '@/components/ShareButton';
 import { quoteHref } from '@/lib/site';
-import { titleCase } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,100 +21,126 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
 }
 
 export default async function ProjectDetailPage({ params }: Params) {
-  const project = await getProjectBySlug((await params).slug);
+  const { slug } = await params;
+  const project = await getProjectBySlug(slug);
   if (!project) notFound();
+
+  const [next, catalog] = await Promise.all([getAdjacentProject(slug), getCatalog()]);
 
   const hero = project.images[0] ?? project.thumbnail;
   const gallery = project.images.length > 1 ? project.images.slice(1) : [];
 
-  const meta = [
+  // productsUsed stores category slugs; show their display names.
+  const used = project.productsUsed
+    .map((s) => catalog.find((c) => c.slug === s))
+    .filter((c): c is NonNullable<typeof c> => Boolean(c));
+
+  const facts = [
     { label: 'Location', value: project.location },
     { label: 'Completed', value: String(project.year) },
     { label: 'Scope', value: project.type },
     { label: 'Architect', value: project.architect },
-  ].filter((m) => m.value);
+    { label: 'Category', value: project.categoryName },
+  ].filter((f) => f.value);
 
   return (
     <>
-      {hero ? (
-        <div className="media detail__hero">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
+      {/* ---- Hero carries the title ---- */}
+      <header className="detail-hero">
+        {hero ? (
+          // eslint-disable-next-line @next/next/no-img-element
           <img src={hero} alt={project.name} />
-        </div>
-      ) : null}
-
-      <div className="container">
-        <article className="detail__body">
-          <header className="detail__head">
-            <div className="breadcrumb">
-              <Link href="/projects">Projects</Link> / {project.categoryName}
-            </div>
-            <h1 className="detail__title">{project.name}</h1>
-            {project.description ? (
-              <p className="detail__lead">{project.description}</p>
+        ) : null}
+        <div className="detail-hero__scrim"></div>
+        <div className="container">
+          <div className="detail-hero__content">
+            <span className="detail-hero__meta">
+              {project.categoryName} · {project.year}
+            </span>
+            <h1 className="detail-hero__title">{project.name}</h1>
+            {project.location ? (
+              <span className="detail-hero__place">{project.location}</span>
             ) : null}
-          </header>
+          </div>
+        </div>
+      </header>
 
-          {meta.length ? (
-            <div className="spec-grid">
-              {meta.map((m) => (
-                <div className="spec" key={m.label}>
-                  <div className="spec__label">{m.label}</div>
-                  <div className="spec__value spec__value--plain">{m.value}</div>
+      {/* ---- Brief + facts ---- */}
+      <div className="container">
+        <div className="brief-grid">
+          <div className="brief">
+            <span className="label">The brief</span>
+            {project.description ? (
+              <p className="brief__text">{project.description}</p>
+            ) : null}
+
+            {used.length ? (
+              <div className="pd__block">
+                <span className="label">Products used</span>
+                <div className="pill-row">
+                  {used.map((c) => (
+                    <Link key={c.slug} href={`/products?category=${c.slug}`} className="chip">
+                      {c.name}
+                    </Link>
+                  ))}
                 </div>
-              ))}
+              </div>
+            ) : null}
+          </div>
+
+          <aside className="meta-panel">
+            {facts.map((f) => (
+              <div className="meta-panel__row" key={f.label}>
+                <div className="meta-panel__label">{f.label}</div>
+                <div className="meta-panel__value">{f.value}</div>
+              </div>
+            ))}
+          </aside>
+        </div>
+
+        {gallery.length ? (
+          <div style={{ paddingBottom: 'var(--section-padding)' }}>
+            <Gallery images={gallery} alt={project.name} mosaic />
+          </div>
+        ) : null}
+
+        {project.videoUrl ? (
+          <div style={{ paddingBottom: 'var(--section-padding)' }}>
+            <span className="label">Project video</span>
+            <div className="video" style={{ marginTop: 12 }}>
+              <iframe
+                src={project.videoUrl}
+                title={`${project.name} video`}
+                allowFullScreen
+                loading="lazy"
+              ></iframe>
             </div>
-          ) : null}
+          </div>
+        ) : null}
+      </div>
 
-          {project.productsUsed.length ? (
-            <section className="detail__section">
-              <span className="label">Products used</span>
-              <div className="pill-row">
-                {project.productsUsed.map((p) => (
-                  <Link key={p} href={`/products?category=${p}`} className="pill-ink">
-                    {titleCase(p)}
-                  </Link>
-                ))}
-              </div>
-            </section>
-          ) : null}
-
-          {gallery.length ? (
-            <section className="detail__section">
-              <span className="label">Gallery</span>
-              <Gallery images={gallery} alt={project.name} />
-            </section>
-          ) : null}
-
-          {project.videoUrl ? (
-            <section className="detail__section">
-              <span className="label">Project video</span>
-              <div className="video">
-                <iframe
-                  src={project.videoUrl}
-                  title={`${project.name} video`}
-                  allowFullScreen
-                  loading="lazy"
-                ></iframe>
-              </div>
-            </section>
-          ) : null}
-
-          <div className="cta-card">
-            <div className="cta-card__title">A project like this in mind?</div>
-            <a className="btn btn--on-ink btn--block" href={quoteHref(project.name)}>
+      {/* ---- Closing CTA ---- */}
+      <section className="cta-band">
+        <div className="container cta-band__inner">
+          <div className="cta-band__copy">
+            <h2 className="cta-band__title">A project like this in mind?</h2>
+            <p className="cta-band__text">
+              Share your drawings — we&apos;ll spec the systems and quote in three working
+              days.
+            </p>
+          </div>
+          <div className="cta-band__actions">
+            <a className="btn btn--on-ink" href={quoteHref(project.name)}>
               Talk to our team
             </a>
+            {next ? (
+              <Link className="btn btn--ghost-ink" href={`/projects/${next.slug}`}>
+                Next project →
+              </Link>
+            ) : null}
           </div>
-
-          <div className="detail__actions">
-            <Link className="btn btn--outline" href="/projects">
-              ← All projects
-            </Link>
-            <ShareButton title={project.name} />
-          </div>
-        </article>
-      </div>
+        </div>
+      </section>
     </>
   );
 }

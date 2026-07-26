@@ -121,7 +121,7 @@
 
   --gutter: 20px;                              /* matches the mobile design */
   --section-padding: clamp(2.25rem, 7vw, 5rem);
-  --container-max: 1200px;
+  --container-max: 1440px;
   --container-padding: var(--gutter);
 
   /* ---- Shape ----
@@ -153,6 +153,14 @@
   --z-modal: 400;
   --z-tooltip: 500;
   --z-nav: 600;
+}
+
+/* Desktop uses the design's 72px gutters inside a 1440 frame */
+@media (min-width: 1100px) {
+  :root {
+    --gutter: 72px;
+    --section-padding: 6rem;
+  }
 }
 
 /* ============================================================
