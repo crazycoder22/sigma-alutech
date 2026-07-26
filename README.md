@@ -1,9 +1,29 @@
 # Sigma Alutech Website
 
-> **⚠️ This static site is being replaced.** The new dynamic website (Next.js +
-> Postgres + Vercel Blob, with a full admin panel at `/admin`) lives in
-> [`web/`](web/README.md). This root site keeps serving on GitHub Pages until
-> the domain is switched to Vercel — see `web/README.md` for the deploy guide.
+> **⚠️ This static site has been superseded.** The dynamic website — Next.js +
+> Neon Postgres + Vercel Blob, with a full admin panel at `/admin` — lives in
+> [`web/`](web/README.md), and its
+> **[deployment architecture is documented there](web/README.md#deployment-architecture)**.
+>
+> This root site is still what `sigmaalutech.in` serves, because the domain has
+> not been pointed at Vercel yet. The new site runs at
+> [sigma-alutech.vercel.app](https://sigma-alutech.vercel.app). See
+> [Domain cutover](web/README.md#domain-cutover-not-done-yet) for the switch.
+
+## This repository contains two sites
+
+| | Legacy (this folder) | Current (`web/`) |
+|---|---|---|
+| Stack | HTML + CSS + vanilla JS | Next.js 16, TypeScript |
+| Content | JSON files in `data/` | Neon Postgres |
+| Images | committed to `images/` | Vercel Blob, uploaded via the admin |
+| Editing | Decap CMS at `/admin` (needs a GitHub login) | `/admin` with email + password |
+| Hosting | GitHub Pages, auto-deploys on push to `main` | Vercel, auto-deploys on push to `main` |
+| Serves | `sigmaalutech.in` | `sigma-alutech.vercel.app` |
+
+Everything below documents the **legacy** site.
+
+---
 
 Static website for **Sigma Alutech** (formerly Ravi Enterprises) — an aluminium fabrication company in Bangalore and authorized **Technal** (France) franchisee via Hydro BS India.
 
