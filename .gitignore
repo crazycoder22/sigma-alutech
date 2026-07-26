@@ -8,3 +8,5 @@ Chancery Pavillion.png
 node_modules/
 test-results/
 playwright-report/
+.vercel
+.env*

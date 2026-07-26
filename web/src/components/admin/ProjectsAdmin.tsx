@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import type { ProjectCategoryDto, ProjectDto } from '@/lib/types';
-import { ImageUploader, StringListEditor } from './fields';
+import { ImageUploader } from './fields';
 
 interface Props {
   categories: ProjectCategoryDto[];

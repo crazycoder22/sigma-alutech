@@ -3,99 +3,99 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { NAV_LINKS, quoteHref } from '@/lib/site';
 import { ThemeToggle } from './ThemeToggle';
-
-const LINKS = [
-  { href: '/#about', label: 'About' },
-  { href: '/products', label: 'Products' },
-  { href: '/projects', label: 'Projects' },
-  { href: '/#contact', label: 'Contact' },
-];
 
 export function Nav() {
   const pathname = usePathname();
+  const [open, setOpen] = useState(false);
+  const [lastPath, setLastPath] = useState(pathname);
+
+  // Home leads with the ink hero, so its bar is dark in both themes.
   const isHome = pathname === '/';
   const isAdmin = pathname.startsWith('/admin');
-  const [scrolled, setScrolled] = useState(!isHome);
-  const [menuOpen, setMenuOpen] = useState(false);
+
+  // Close the drawer on any navigation, including back/forward.
+  if (pathname !== lastPath) {
+    setLastPath(pathname);
+    setOpen(false);
+  }
 
   useEffect(() => {
-    if (!isHome) {
-      setScrolled(true);
-      return;
-    }
-    const onScroll = () => setScrolled(window.scrollY > 50);
-    onScroll();
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
-  }, [isHome]);
-
-  useEffect(() => {
-    document.body.classList.toggle('no-scroll', menuOpen);
+    document.body.classList.toggle('no-scroll', open);
     return () => document.body.classList.remove('no-scroll');
-  }, [menuOpen]);
+  }, [open]);
 
-  // Close the mobile menu on navigation.
   useEffect(() => {
-    setMenuOpen(false);
-  }, [pathname]);
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, []);
 
-  if (isAdmin) return null; // admin area has its own chrome
+  if (isAdmin) return null; // the admin area has its own chrome
+
+  const isActive = (href: string) =>
+    href.startsWith('/#') || href.includes('#')
+      ? pathname === href.split('#')[0]
+      : pathname === href || pathname.startsWith(`${href}/`);
 
   return (
-    <nav className={`nav${isHome ? ' nav--overlay' : ''}${scrolled ? ' scrolled' : ''}`} id="nav">
-      <div className="container nav__inner">
-        <Link href="/" className="nav__logo">
-          <div className="nav__logo-text">
+    <>
+      <nav className={`nav${isHome ? ' nav--ink' : ''}`} id="nav">
+        <div className="container nav__inner">
+          <Link href="/" className="nav__logo">
             SIGMA <span>ALUTECH</span>
-          </div>
-        </Link>
+          </Link>
 
-        <div className="nav__links">
-          {LINKS.map((l) => (
-            <Link
-              key={l.href}
-              href={l.href}
-              className={`nav__link${pathname === l.href ? ' active' : ''}`}
+          <div className="nav__links">
+            {NAV_LINKS.map((l) => (
+              <Link
+                key={l.href}
+                href={l.href}
+                className={`nav__link${isActive(l.href) ? ' active' : ''}`}
+              >
+                {l.label}
+              </Link>
+            ))}
+          </div>
+
+          <div className="nav__actions">
+            <ThemeToggle />
+            <button
+              className="nav__toggle"
+              aria-label={open ? 'Close menu' : 'Open menu'}
+              aria-expanded={open}
+              aria-controls="nav-drawer"
+              onClick={() => setOpen((v) => !v)}
             >
-              {l.label}
-            </Link>
-          ))}
-        </div>
-
-        <div className="flex-center gap-md">
-          <ThemeToggle />
-          <div
-            className={`nav__hamburger${menuOpen ? ' open' : ''}`}
-            aria-label="Toggle menu"
-            role="button"
-            tabIndex={0}
-            onClick={() => setMenuOpen((v) => !v)}
-            onKeyDown={(e) => e.key === 'Enter' && setMenuOpen((v) => !v)}
-          >
-            <span></span>
-            <span></span>
-            <span></span>
+              <span></span>
+              <span></span>
+            </button>
           </div>
         </div>
-      </div>
+      </nav>
 
       <div
-        className={`nav__mobile-overlay${menuOpen ? ' open' : ''}`}
-        onClick={() => setMenuOpen(false)}
+        className={`nav__scrim${open ? ' open' : ''}`}
+        onClick={() => setOpen(false)}
+        aria-hidden="true"
       ></div>
-      <div className={`nav__mobile${menuOpen ? ' open' : ''}`}>
-        {LINKS.map((l) => (
+
+      <div className={`nav__drawer${open ? ' open' : ''}`} id="nav-drawer">
+        {NAV_LINKS.map((l) => (
           <Link
             key={l.href}
             href={l.href}
-            className="nav__mobile-link"
-            onClick={() => setMenuOpen(false)}
+            className={`nav__drawer-link${isActive(l.href) ? ' active' : ''}`}
+            onClick={() => setOpen(false)}
           >
             {l.label}
           </Link>
         ))}
+        <a className="btn btn--on-ink nav__drawer-cta" href={quoteHref()}>
+          Request a quote
+        </a>
       </div>
-    </nav>
+    </>
   );
 }

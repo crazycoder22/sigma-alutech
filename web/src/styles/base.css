@@ -1,9 +1,10 @@
-/* ============================================
-   SIGMA ALUTECH - Base Styles
-   ============================================ */
+/* ============================================================
+   SIGMA ALUTECH — Base
+   ============================================================ */
 
-/* Reset */
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
@@ -13,6 +14,7 @@ html {
   scroll-behavior: smooth;
   -webkit-text-size-adjust: 100%;
   scroll-padding-top: var(--nav-height);
+  background: var(--bg-canvas);
 }
 
 body {
@@ -20,8 +22,8 @@ body {
   font-weight: var(--fw-regular);
   font-size: var(--fs-body);
   line-height: var(--lh-normal);
-  color: var(--text-primary);
-  background-color: var(--bg-primary);
+  color: var(--text-body);
+  background: var(--bg-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
@@ -31,31 +33,39 @@ body.no-scroll {
   overflow: hidden;
 }
 
-/* Typography */
-h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-heading);
+/* ---- Type ---- */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-display);
+  font-weight: var(--fw-regular);
   line-height: var(--lh-tight);
   color: var(--text-primary);
+  text-wrap: pretty;
 }
 
-h1 { font-size: var(--fs-h1); font-weight: var(--fw-bold); }
-h2 { font-size: var(--fs-h2); font-weight: var(--fw-semibold); }
-h3 { font-size: var(--fs-h3); font-weight: var(--fw-semibold); }
-h4 { font-size: var(--fs-h4); font-weight: var(--fw-medium); }
+h1 { font-size: var(--fs-h1); }
+h2 { font-size: var(--fs-h2); }
+h3 { font-size: var(--fs-h3); }
+h4 { font-size: var(--fs-h4); line-height: var(--lh-snug); }
 
 p {
   color: var(--text-secondary);
   line-height: var(--lh-loose);
+  font-weight: var(--fw-light);
 }
 
 a {
-  color: var(--gold-primary);
+  color: var(--gold);
   text-decoration: none;
   transition: color var(--transition-fast);
 }
 
 a:hover {
-  color: var(--gold-light);
+  color: var(--gold-hover);
 }
 
 img {
@@ -64,24 +74,31 @@ img {
   display: block;
 }
 
-ul, ol {
+ul,
+ol {
   list-style: none;
 }
 
 button {
   font-family: var(--font-body);
+  font-size: inherit;
   cursor: pointer;
   border: none;
   background: none;
   color: inherit;
 }
 
-input, textarea, select {
+input,
+textarea,
+select {
   font-family: var(--font-body);
   font-size: var(--fs-body);
 }
 
-/* Utility Classes */
+/* ============================================================
+   Shared primitives
+   ============================================================ */
+
 .container {
   width: 100%;
   max-width: var(--container-max);
@@ -94,91 +111,127 @@ input, textarea, select {
 }
 
 .section--alt {
-  background-color: var(--bg-secondary);
+  background: var(--bg-secondary);
 }
 
-.section-header {
-  text-align: center;
-  margin-bottom: var(--space-3xl);
-}
-
-.section-label {
-  display: inline-block;
-  font-family: var(--font-heading);
-  font-size: var(--fs-xs);
-  font-weight: var(--fw-semibold);
-  letter-spacing: var(--ls-wider);
+/* Small uppercase label above a heading — used on every screen */
+.eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: var(--fs-eyebrow);
+  letter-spacing: var(--ls-widest);
   text-transform: uppercase;
-  color: var(--gold-primary);
-  margin-bottom: var(--space-md);
+  color: var(--gold);
 }
 
-.section-title {
-  font-size: var(--fs-h2);
-  margin-bottom: var(--space-md);
+.eyebrow::before {
+  content: '';
+  width: 28px;
+  height: 1px;
+  background: var(--gold);
+  flex: none;
 }
 
-.section-subtitle {
+/* Same label without the rule, for tighter spots */
+.label {
+  font-size: var(--fs-eyebrow);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+.label--muted {
+  color: var(--text-muted);
+  letter-spacing: var(--ls-wide);
+}
+
+.page-intro {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: var(--space-2xl) 0 var(--space-lg);
+}
+
+.page-intro__title {
+  font-size: var(--fs-display);
+  line-height: var(--lh-tight);
+  color: var(--text-primary);
+}
+
+.page-intro__lead {
   font-size: var(--fs-body);
-  color: var(--text-secondary);
-  max-width: 600px;
-  margin: 0 auto;
+  font-weight: var(--fw-light);
+  line-height: var(--lh-normal);
+  color: var(--text-muted);
+  max-width: 56ch;
 }
 
-.gold-text {
-  color: var(--gold-primary);
+/* Breadcrumb on detail pages */
+.breadcrumb {
+  font-size: var(--fs-eyebrow);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
 }
 
-.gold-line {
-  width: 60px;
-  height: 2px;
-  background: var(--gold-primary);
-  margin: var(--space-lg) auto;
+.breadcrumb a {
+  color: inherit;
 }
 
-/* Reveal animation classes */
+.breadcrumb a:hover {
+  color: var(--gold);
+}
+
+/* Scroll reveal */
 .reveal {
   opacity: 0;
-  transform: translateY(30px);
+  transform: translateY(20px);
   transition: opacity var(--transition-slower), transform var(--transition-slower);
 }
 
 .reveal.visible {
   opacity: 1;
-  transform: translateY(0);
+  transform: none;
 }
 
-.reveal-delay-1 { transition-delay: 100ms; }
-.reveal-delay-2 { transition-delay: 200ms; }
-.reveal-delay-3 { transition-delay: 300ms; }
-.reveal-delay-4 { transition-delay: 400ms; }
+.reveal-delay-1 { transition-delay: 80ms; }
+.reveal-delay-2 { transition-delay: 160ms; }
+.reveal-delay-3 { transition-delay: 240ms; }
+.reveal-delay-4 { transition-delay: 320ms; }
 
-/* Selection */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
 ::selection {
-  background: var(--gold-primary);
+  background: var(--gold);
   color: var(--text-on-gold);
 }
 
-/* Scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 10px;
+  height: 10px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--bg-primary);
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--gold-dark);
-  border-radius: 4px;
+  background: var(--border-strong);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--gold-primary);
+  background: var(--gold);
 }
 
-/* Focus styles */
 :focus-visible {
-  outline: 2px solid var(--gold-primary);
+  outline: 2px solid var(--gold);
   outline-offset: 2px;
 }

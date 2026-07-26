@@ -78,6 +78,72 @@ export async function getFeaturedProjects(): Promise<ProjectWithCategory[]> {
   return all.filter((p) => p.featured).slice(0, 6);
 }
 
+export interface ProductWithCategory extends Product {
+  categorySlug: string;
+  categoryName: string;
+}
+
+export async function getProductBySlug(
+  slug: string
+): Promise<ProductWithCategory | null> {
+  const db = getDb();
+  const [row] = await db
+    .select({
+      product: products,
+      categorySlug: categories.slug,
+      categoryName: categories.name,
+    })
+    .from(products)
+    .innerJoin(categories, eq(products.categoryId, categories.id))
+    .where(eq(products.slug, slug));
+  if (!row) return null;
+  return {
+    ...row.product,
+    categorySlug: row.categorySlug,
+    categoryName: row.categoryName,
+  };
+}
+
+export async function getProjectBySlug(
+  slug: string
+): Promise<ProjectWithCategory | null> {
+  const db = getDb();
+  const [row] = await db
+    .select({
+      project: projects,
+      categorySlug: projectCategories.slug,
+      categoryName: projectCategories.name,
+    })
+    .from(projects)
+    .innerJoin(projectCategories, eq(projects.categoryId, projectCategories.id))
+    .where(eq(projects.slug, slug));
+  if (!row) return null;
+  return {
+    ...row.project,
+    categorySlug: row.categorySlug,
+    categoryName: row.categoryName,
+  };
+}
+
+/** Headline numbers shown on the home and about pages. */
+export async function getSiteStats(): Promise<{
+  projects: number;
+  categories: number;
+  products: number;
+}> {
+  const db = getDb();
+  const [projectRows, categoryRows, productRows] = await Promise.all([
+    db.select({ id: projects.id }).from(projects),
+    db.select({ id: categories.id }).from(categories),
+    db.select({ id: products.id }).from(products),
+  ]);
+  return {
+    projects: projectRows.length,
+    categories: categoryRows.length,
+    products: productRows.length,
+  };
+}
+
 // ---------- Admin mutations ----------
 
 export async function createProduct(input: ProductInput): Promise<Product> {

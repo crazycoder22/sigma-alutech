@@ -2,31 +2,35 @@
 
 import { useEffect, useState } from 'react';
 
-const SLIDES = [
-  { image: '/images/hero/hero-1.svg', color: '#1a1a1a' },
-  { image: '/images/hero/hero-2.svg', color: '#141414' },
-  { image: '/images/hero/hero-3.svg', color: '#111111' },
-];
+interface Props {
+  images: string[];
+}
 
-export function HeroSlider() {
+/** Slow cross-fade behind the hero copy. Falls back to a single still. */
+export function HeroSlider({ images }: Props) {
+  const slides = images.length ? images : ['/images/hero/hero-1.svg'];
   const [current, setCurrent] = useState(0);
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrent((c) => (c + 1) % SLIDES.length);
-    }, 5000);
+    if (slides.length < 2) return;
+    const timer = setInterval(
+      () => setCurrent((c) => (c + 1) % slides.length),
+      6000
+    );
     return () => clearInterval(timer);
-  }, []);
+  }, [slides.length]);
 
   return (
-    <div className="hero__slider">
-      {SLIDES.map((s, i) => (
+    <div className="hero__media">
+      {slides.map((src, i) => (
         <div
-          key={s.image}
+          key={src}
           className={`hero__slide${i === current ? ' active' : ''}`}
-          style={{ backgroundImage: `url('${s.image}')`, backgroundColor: s.color }}
+          style={{ backgroundImage: `url('${src}')` }}
+          role="presentation"
         ></div>
       ))}
+      <div className="hero__scrim"></div>
     </div>
   );
 }
