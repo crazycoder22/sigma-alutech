@@ -1,59 +1,251 @@
 'use client';
 
 import { useRef, useState } from 'react';
+import { finishSwatch } from '@/lib/finishes';
 
-// ---------- String list (features, finishes) ----------
+/* ============================================================
+   Text field with an optional soft character counter
+   ============================================================ */
 
-export function StringListEditor({
+export function Field({
   label,
+  value,
+  onChange,
+  softLimit,
+  placeholder,
+  required,
+  readOnly,
+  type = 'text',
+  id,
+}: {
+  label: string;
+  value: string;
+  onChange?: (v: string) => void;
+  softLimit?: number;
+  placeholder?: string;
+  required?: boolean;
+  readOnly?: boolean;
+  type?: string;
+  id?: string;
+}) {
+  const over = softLimit !== undefined && value.length > softLimit;
+  return (
+    <div className="field">
+      <label className="field__label" htmlFor={id}>
+        <span>
+          {label}
+          {required ? ' *' : ''}
+        </span>
+        {softLimit !== undefined ? (
+          <span className={`field__counter${over ? ' field__counter--over' : ''}`}>
+            {value.length} / {softLimit}
+          </span>
+        ) : null}
+      </label>
+      <input
+        id={id}
+        type={type}
+        value={value}
+        placeholder={placeholder}
+        required={required}
+        readOnly={readOnly}
+        onChange={(e) => onChange?.(e.target.value)}
+      />
+    </div>
+  );
+}
+
+export function TextareaField({
+  label,
+  value,
+  onChange,
+  placeholder,
+  id,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  id?: string;
+}) {
+  return (
+    <div className="field">
+      <label className="field__label" htmlFor={id}>
+        <span>{label}</span>
+      </label>
+      <textarea
+        id={id}
+        value={value}
+        placeholder={placeholder}
+        onChange={(e) => onChange(e.target.value)}
+      />
+    </div>
+  );
+}
+
+export function SelectField<T extends string | number>({
+  label,
+  value,
+  onChange,
+  options,
+  required,
+  id,
+}: {
+  label: string;
+  value: T;
+  onChange: (v: string) => void;
+  options: Array<{ value: T; label: string }>;
+  required?: boolean;
+  id?: string;
+}) {
+  return (
+    <div className="field">
+      <label className="field__label" htmlFor={id}>
+        <span>
+          {label}
+          {required ? ' *' : ''}
+        </span>
+      </label>
+      <select id={id} value={value} onChange={(e) => onChange(e.target.value)}>
+        {options.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+/* ============================================================
+   Toggle switch
+   ============================================================ */
+
+export function SwitchRow({
+  title,
+  note,
+  checked,
+  onChange,
+  id,
+}: {
+  title: string;
+  note?: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  id?: string;
+}) {
+  return (
+    <div className="switch-row">
+      <div>
+        <div className="switch-row__title">{title}</div>
+        {note ? <div className="switch-row__note">{note}</div> : null}
+      </div>
+      <button
+        type="button"
+        id={id}
+        className="switch"
+        role="switch"
+        aria-checked={checked}
+        aria-label={title}
+        onClick={() => onChange(!checked)}
+      />
+    </div>
+  );
+}
+
+/* ============================================================
+   Reorderable string list (features)
+   ============================================================ */
+
+export function ReorderableList({
   values,
   onChange,
   placeholder,
+  addLabel = '+ Add feature',
 }: {
-  label: string;
   values: string[];
   onChange: (next: string[]) => void;
   placeholder?: string;
+  addLabel?: string;
 }) {
-  function update(i: number, v: string) {
-    onChange(values.map((x, j) => (j === i ? v : x)));
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const [overIndex, setOverIndex] = useState<number | null>(null);
+
+  function move(from: number, to: number) {
+    if (from === to) return;
+    const next = [...values];
+    const [item] = next.splice(from, 1);
+    next.splice(to, 0, item);
+    onChange(next);
   }
+
   return (
-    <div className="form-field">
-      <label>{label}</label>
+    <div className="rep">
       {values.map((v, i) => (
-        <div className="list-editor__row" key={i}>
+        <div
+          key={i}
+          className={`rep__row${dragIndex === i ? ' rep__row--dragging' : ''}${
+            overIndex === i && dragIndex !== i ? ' rep__row--over' : ''
+          }`}
+          draggable
+          onDragStart={() => setDragIndex(i)}
+          onDragEnter={() => setOverIndex(i)}
+          onDragOver={(e) => e.preventDefault()}
+          onDrop={() => {
+            if (dragIndex !== null) move(dragIndex, i);
+            setDragIndex(null);
+            setOverIndex(null);
+          }}
+          onDragEnd={() => {
+            setDragIndex(null);
+            setOverIndex(null);
+          }}
+        >
+          <span className="rep__handle" title="Drag to reorder" aria-hidden="true">
+            ⠿
+          </span>
           <input
-            type="text"
             value={v}
             placeholder={placeholder}
-            onChange={(e) => update(i, e.target.value)}
+            aria-label={`Item ${i + 1}`}
+            onChange={(e) => onChange(values.map((x, j) => (j === i ? e.target.value : x)))}
           />
+          {/* Keyboard-accessible alternative to dragging */}
+          <button
+            type="button"
+            className="icon-btn"
+            title="Move up"
+            aria-label={`Move item ${i + 1} up`}
+            onClick={() => move(i, Math.max(0, i - 1))}
+          >
+            ↑
+          </button>
           <button
             type="button"
             className="icon-btn"
             title="Remove"
+            aria-label={`Remove item ${i + 1}`}
             onClick={() => onChange(values.filter((_, j) => j !== i))}
           >
-            ✕
+            ×
           </button>
         </div>
       ))}
-      <button type="button" className="btn btn--outline btn--small" onClick={() => onChange([...values, ''])}>
-        + Add
+      <button type="button" className="add-dashed" onClick={() => onChange([...values, ''])}>
+        {addLabel}
       </button>
     </div>
   );
 }
 
-// ---------- Key/value editor (specifications) ----------
+/* ============================================================
+   Specification table
+   ============================================================ */
 
-export function KeyValueEditor({
-  label,
+export function SpecTable({
   entries,
   onChange,
 }: {
-  label: string;
   entries: Array<[string, string]>;
   onChange: (next: Array<[string, string]>) => void;
 }) {
@@ -65,68 +257,154 @@ export function KeyValueEditor({
     );
   }
   return (
-    <div className="form-field">
-      <label>{label}</label>
-      {entries.map(([k, v], i) => (
-        <div className="list-editor__row" key={i}>
-          <input
-            type="text"
-            value={k}
-            placeholder="Spec (e.g. Profile Depth)"
-            onChange={(e) => update(i, 0, e.target.value)}
-          />
-          <input
-            type="text"
-            value={v}
-            placeholder="Value (e.g. 65mm)"
-            onChange={(e) => update(i, 1, e.target.value)}
-          />
-          <button
-            type="button"
-            className="icon-btn"
-            title="Remove"
-            onClick={() => onChange(entries.filter((_, j) => j !== i))}
-          >
-            ✕
-          </button>
+    <>
+      {entries.length ? (
+        <div className="spec-table">
+          {entries.map(([k, v], i) => (
+            <div className="spec-table__row" key={i}>
+              <input
+                className="spec-table__key"
+                value={k}
+                placeholder="Max Width"
+                aria-label={`Specification ${i + 1} name`}
+                onChange={(e) => update(i, 0, e.target.value)}
+              />
+              <input
+                className="spec-table__value"
+                value={v}
+                placeholder="1400 mm"
+                aria-label={`Specification ${i + 1} value`}
+                onChange={(e) => update(i, 1, e.target.value)}
+              />
+              <button
+                type="button"
+                className="icon-btn"
+                title="Remove"
+                aria-label={`Remove specification ${i + 1}`}
+                onClick={() => onChange(entries.filter((_, j) => j !== i))}
+              >
+                ×
+              </button>
+            </div>
+          ))}
         </div>
-      ))}
+      ) : null}
       <button
         type="button"
-        className="btn btn--outline btn--small"
+        className="add-dashed"
         onClick={() => onChange([...entries, ['', '']])}
       >
-        + Add Spec
+        + Add spec
       </button>
+    </>
+  );
+}
+
+/* ============================================================
+   Finish chips
+   ============================================================ */
+
+export function FinishChips({
+  values,
+  onChange,
+}: {
+  values: string[];
+  onChange: (next: string[]) => void;
+}) {
+  const [adding, setAdding] = useState(false);
+  const [draft, setDraft] = useState('');
+
+  function commit() {
+    const v = draft.trim();
+    if (v && !values.includes(v)) onChange([...values, v]);
+    setDraft('');
+    setAdding(false);
+  }
+
+  return (
+    <div className="finish-chips">
+      {values.map((f) => (
+        <span className="finish-chip" key={f}>
+          <span className="finish__swatch" style={{ background: finishSwatch(f) }}></span>
+          {f}
+          <button
+            type="button"
+            aria-label={`Remove ${f}`}
+            onClick={() => onChange(values.filter((x) => x !== f))}
+          >
+            ×
+          </button>
+        </span>
+      ))}
+      {adding ? (
+        <input
+          autoFocus
+          className="spec-table__value"
+          style={{
+            border: '1px solid var(--border-strong)',
+            padding: '8px 12px',
+            background: 'var(--bg-surface)',
+            color: 'var(--text-primary)',
+          }}
+          value={draft}
+          placeholder="Anodized"
+          aria-label="New finish"
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={commit}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              commit();
+            }
+            if (e.key === 'Escape') {
+              setDraft('');
+              setAdding(false);
+            }
+          }}
+        />
+      ) : (
+        <button
+          type="button"
+          className="add-dashed add-dashed--inline"
+          onClick={() => setAdding(true)}
+        >
+          + Add
+        </button>
+      )}
     </div>
   );
 }
 
-// ---------- Image uploader (multi, ordered; first image = main) ----------
+/* ============================================================
+   Images — tiles with a Main badge, reorder, remove, dropzone
+   ============================================================ */
 
-export function ImageUploader({
-  label,
+export function ImageManager({
   images,
   onChange,
   folder,
-  hint,
+  max = 8,
 }: {
-  label: string;
   images: string[];
   onChange: (next: string[]) => void;
   folder: 'products' | 'projects';
-  hint?: string;
+  max?: number;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [uploading, setUploading] = useState(false);
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [dragOver, setDragOver] = useState(false);
 
-  async function handleFiles(files: FileList | null) {
-    if (!files?.length) return;
-    setUploading(true);
+  async function upload(files: FileList | File[] | null) {
+    if (!files || !('length' in files) || files.length === 0) return;
+    setBusy(true);
     setError('');
     const added: string[] = [];
     for (const file of Array.from(files)) {
+      if (images.length + added.length >= max) {
+        setError(`Up to ${max} images per item.`);
+        break;
+      }
       const form = new FormData();
       form.append('file', file);
       form.append('folder', folder);
@@ -143,7 +421,7 @@ export function ImageUploader({
       }
     }
     if (added.length) onChange([...images, ...added]);
-    setUploading(false);
+    setBusy(false);
     if (inputRef.current) inputRef.current.value = '';
   }
 
@@ -156,46 +434,86 @@ export function ImageUploader({
   }
 
   return (
-    <div className="form-field">
-      <label>{label}</label>
+    <>
       {error ? <div className="form-error">{error}</div> : null}
-      <div className="image-uploader__grid">
+
+      <div className="img-grid">
         {images.map((url, i) => (
-          <div
-            key={`${url}-${i}`}
-            className={`image-uploader__item${i === 0 ? ' image-uploader__item--main' : ''}`}
-          >
-            { }
+          <div className="img-tile" key={`${url}-${i}`}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={url} alt={`Image ${i + 1}`} />
-            {i === 0 ? <span className="image-uploader__badge">Main</span> : null}
-            <div className="image-uploader__controls">
-              <button type="button" className="icon-btn" title="Move left" onClick={() => move(i, -1)}>
+            {i === 0 ? <span className="img-tile__badge">Main</span> : null}
+            <span className="img-tile__tools">
+              <button
+                type="button"
+                title="Move left"
+                aria-label={`Move image ${i + 1} earlier`}
+                onClick={() => move(i, -1)}
+              >
                 ‹
               </button>
               <button
                 type="button"
-                className="icon-btn"
                 title="Remove"
+                aria-label={`Remove image ${i + 1}`}
                 onClick={() => onChange(images.filter((_, j) => j !== i))}
               >
-                ✕
+                ×
               </button>
-              <button type="button" className="icon-btn" title="Move right" onClick={() => move(i, 1)}>
+              <button
+                type="button"
+                title="Move right"
+                aria-label={`Move image ${i + 1} later`}
+                onClick={() => move(i, 1)}
+              >
                 ›
               </button>
-            </div>
+            </span>
           </div>
         ))}
+
+        {/* Compact "+" tile beside the thumbnails on small screens */}
+        <button
+          type="button"
+          className="dropzone dropzone--tile"
+          onClick={() => inputRef.current?.click()}
+          aria-label="Add images"
+        >
+          +
+        </button>
       </div>
+
+      <button
+        type="button"
+        className={`dropzone dropzone--panel${dragOver ? ' dropzone--over' : ''}`}
+        onClick={() => inputRef.current?.click()}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setDragOver(true);
+        }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDragOver(false);
+          upload(e.dataTransfer.files);
+        }}
+      >
+        <span className="dropzone__title">
+          {busy ? 'Uploading…' : 'Drop images or browse'}
+        </span>
+        <span className="dropzone__hint">JPG / PNG / WebP up to 8 MB</span>
+      </button>
+
       <input
         ref={inputRef}
         type="file"
         accept="image/jpeg,image/png,image/webp,image/avif,image/svg+xml"
         multiple
-        onChange={(e) => handleFiles(e.target.files)}
+        hidden
+        onChange={(e) => upload(e.target.files)}
       />
-      {uploading ? <div className="image-uploader__progress">Uploading…</div> : null}
-      {hint ? <div className="image-uploader__progress">{hint}</div> : null}
-    </div>
+
+      {busy ? <div className="panel__hint">Uploading…</div> : null}
+    </>
   );
 }

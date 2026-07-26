@@ -164,11 +164,146 @@ test.describe('Admin auth', () => {
 
   test('login and logout round-trip', async ({ page }) => {
     await login(page);
-    await expect(page.getByRole('heading', { name: 'Products' })).toBeVisible();
-    await page.getByRole('button', { name: 'Sign Out' }).click();
+    await expect(page.locator('.admin-head__title')).toHaveText('Products');
+    await page.getByRole('button', { name: 'Sign out' }).click();
     await page.waitForURL('**/admin');
     await page.goto('/admin/products');
     await page.waitForURL('**/admin');
+  });
+});
+
+test.describe('Admin shell', () => {
+  test('desktop shows the ink sidebar with live counts', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await login(page);
+    const side = page.locator('.admin-side');
+    await expect(side).toBeVisible();
+    await expect(side.locator('.admin-side__link.active')).toContainText('Products');
+    // Count in the sidebar matches the count in the page header.
+    const sidebarCount = await side.locator('.admin-side__link.active .admin-side__count').innerText();
+    await expect(page.locator('.admin-head__meta')).toContainText(`${sidebarCount} items`);
+    await expect(page.locator('.rec-table')).toBeVisible();
+  });
+
+  test('mobile shows the tab bar and card list instead', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await login(page);
+    await expect(page.locator('.admin-tabs')).toBeVisible();
+    await expect(page.locator('.admin-side')).toBeHidden();
+    await expect(page.locator('.rec-list .rec').first()).toBeVisible();
+    await expect(page.locator('.rec-table')).toBeHidden();
+  });
+
+  test('tabs navigate between products and projects', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await login(page);
+    await page.locator('.admin-side__link', { hasText: 'Projects' }).click();
+    await page.waitForURL('**/admin/projects');
+    await expect(page.locator('.admin-head__title')).toHaveText('Projects');
+  });
+});
+
+test.describe('Admin list controls', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await login(page);
+  });
+
+  test('search narrows the list', async ({ page }) => {
+    const before = await page.locator('.rec-table .rec-row:not(.rec-row--head)').count();
+    await page.getByLabel('Search products').fill('casement');
+    const after = await page.locator('.rec-table .rec-row:not(.rec-row--head)').count();
+    expect(after).toBeGreaterThan(0);
+    expect(after).toBeLessThan(before);
+  });
+
+  test('search with no matches shows the empty state', async ({ page }) => {
+    await page.getByLabel('Search products').fill('zzzznothing');
+    await expect(page.locator('.admin-empty')).toBeVisible();
+  });
+
+  test('category filter narrows the list', async ({ page }) => {
+    const before = await page.locator('.rec-table .rec-row:not(.rec-row--head)').count();
+    await page.locator('.admin-filters .filter-btn[data-category="doors"]').click();
+    const after = await page.locator('.rec-table .rec-row:not(.rec-row--head)').count();
+    expect(after).toBeGreaterThan(0);
+    expect(after).toBeLessThan(before);
+  });
+
+  test('featured-only filter shows just starred rows', async ({ page }) => {
+    await page.getByTestId('featured-filter').click();
+    const rows = page.locator('.rec-table .rec-row:not(.rec-row--head)');
+    const count = await rows.count();
+    expect(count).toBeGreaterThan(0);
+    await expect(rows.locator('.star--on')).toHaveCount(count);
+  });
+
+  test('star toggles featured and persists on the public homepage', async ({ page }) => {
+    const row = page.locator('.rec-table .rec-row:not(.rec-row--head)').first();
+    const name = await row.locator('.rec-row__name').innerText();
+    const wasFeatured = await row.locator('.star--on').count();
+
+    await row.locator('.star').click();
+    await expect
+      .poll(async () => page.locator('.rec-table .rec-row', { hasText: name }).locator('.star--on').count())
+      .toBe(wasFeatured ? 0 : 1);
+
+    // Put it back so the suite is idempotent.
+    await page.locator('.rec-table .rec-row', { hasText: name }).locator('.star').click();
+    await expect
+      .poll(async () => page.locator('.rec-table .rec-row', { hasText: name }).locator('.star--on').count())
+      .toBe(wasFeatured ? 1 : 0);
+  });
+});
+
+test.describe('Admin editor', () => {
+  test('tracks unsaved changes and can discard them', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await login(page);
+    await page.locator('.rec-row .btn', { hasText: 'Edit' }).first().click();
+
+    await expect(page.getByTestId('product-editor')).toBeVisible();
+    await expect(page.getByTestId('dirty-state')).toHaveText('Saved');
+
+    await page.getByLabel('Series').fill('CHANGED');
+    await expect(page.getByTestId('dirty-state')).toContainText('Unsaved changes');
+
+    page.once('dialog', (d) => d.accept());
+    await page.getByRole('button', { name: 'Cancel' }).click();
+    await expect(page.getByTestId('product-editor')).toBeHidden();
+  });
+
+  test('features reorder with the keyboard control', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await login(page);
+    await page.locator('.rec-row .btn', { hasText: 'Edit' }).first().click();
+
+    const inputs = page.locator('.rep__row input');
+    const first = await inputs.first().inputValue();
+    const second = await inputs.nth(1).inputValue();
+    test.skip(first === second, 'needs two distinct features');
+
+    await page.locator('.rep__row').nth(1).getByRole('button', { name: /Move item 2 up/ }).click();
+    await expect(inputs.first()).toHaveValue(second);
+    await expect(page.getByTestId('dirty-state')).toContainText('Unsaved changes');
+  });
+
+  test('card preview mirrors what is typed', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await login(page);
+    await page.getByTestId('add-product').click();
+    await page.getByLabel('Name').fill('Preview Probe');
+    await page.getByLabel('Tagline').fill('Live preview line');
+    await expect(page.locator('.preview-card__title')).toHaveText('Preview Probe');
+    await expect(page.locator('.preview-card__text')).toHaveText('Live preview line');
+  });
+
+  test('tagline counter flags going over the soft limit', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await login(page);
+    await page.getByTestId('add-product').click();
+    await page.getByLabel('Tagline').fill('x'.repeat(61));
+    await expect(page.locator('.field__counter')).toHaveClass(/field__counter--over/);
   });
 });
 
@@ -177,35 +312,43 @@ test.describe('Admin product CRUD (full lifecycle)', () => {
   const name = 'E2E Test Window';
 
   test('create with upload, verify on the public site, edit, delete', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
     await login(page);
 
     // ---- Create ----
     await page.getByTestId('add-product').click();
-    await page.getByLabel('Name *').fill(name);
-    await page.getByLabel('Slug (URL id — auto-generated)').fill(slug);
-    await page.getByLabel('Tagline (one line on the card)').fill('Created by Playwright');
-    await page.getByLabel('Series (e.g. FY 65)').fill('E2E 100');
-    await page.getByLabel('Type badge (e.g. casement, sliding)').fill('casement');
+    await page.getByLabel('Name').fill(name);
+    await page.getByLabel('Slug (auto)').fill(slug);
+    await page.getByLabel('Tagline').fill('Created by Playwright');
+    await page.getByLabel('Series').fill('E2E 100');
+    await page.getByLabel('Type badge').fill('casement');
 
-    await page.getByRole('button', { name: '+ Add', exact: true }).first().click();
-    await page.locator('.list-editor__row input').first().fill('Playwright tested');
+    await page.getByRole('button', { name: '+ Add feature' }).click();
+    await page.locator('.rep__row input').first().fill('Playwright tested');
+
+    await page.getByRole('button', { name: '+ Add spec' }).click();
+    await page.locator('.spec-table__key').first().fill('Max Width');
+    await page.locator('.spec-table__value').first().fill('1400 mm');
 
     await page.locator('input[type="file"]').setInputFiles({
       name: 'e2e-photo.png',
       mimeType: 'image/png',
       buffer: Buffer.from(PNG_BASE64, 'base64'),
     });
-    await expect(page.locator('.image-uploader__item img')).toHaveCount(1);
+    await expect(page.locator('.img-tile img')).toHaveCount(1);
+    await expect(page.locator('.img-tile__badge')).toHaveText('Main');
 
-    await page
-      .getByLabel('YouTube video URL (optional)')
-      .fill('https://www.youtube.com/watch?v=tu9WlspEjo0');
+    await page.getByLabel('YouTube video URL').fill('https://www.youtube.com/watch?v=tu9WlspEjo0');
 
-    await page.getByRole('button', { name: 'Create Product' }).click();
+    // Featured toggle is a switch, not a checkbox.
+    await page.locator('.switch').click();
+    await expect(page.locator('.switch')).toHaveAttribute('aria-checked', 'true');
+
+    await page.getByRole('button', { name: 'Create product' }).first().click();
     await expect(page.locator('.form-success')).toContainText('created');
-    await expect(page.getByTestId(`product-row-${slug}`)).toBeVisible();
+    await expect(page.getByTestId(`product-tr-${slug}`)).toBeVisible();
 
-    // ---- Verify on the public detail page ----
+    // ---- Verify on the public site ----
     await page.goto(`/products/${slug}`);
     await expect(page.locator('.detail__title')).toHaveText(name);
     await expect(page.locator('.video iframe')).toHaveAttribute(
@@ -213,12 +356,16 @@ test.describe('Admin product CRUD (full lifecycle)', () => {
       'https://www.youtube.com/embed/tu9WlspEjo0'
     );
     await expect(page.locator('.feature-list li')).toContainText(['Playwright tested']);
+    await expect(page.locator('.spec-grid .spec')).toContainText(['1400 mm']);
+
+    await page.goto('/');
+    await expect(page.locator('.rail .mini-card', { hasText: name })).toBeVisible();
 
     // ---- Edit ----
     await page.goto('/admin/products');
-    await page.getByTestId(`product-row-${slug}`).getByRole('button', { name: 'Edit' }).click();
-    await page.getByLabel('Tagline (one line on the card)').fill('Updated by Playwright');
-    await page.getByRole('button', { name: 'Save Changes' }).click();
+    await page.getByTestId(`product-tr-${slug}`).getByRole('button', { name: 'Edit' }).click();
+    await page.getByLabel('Tagline').fill('Updated by Playwright');
+    await page.getByRole('button', { name: 'Save changes' }).first().click();
     await expect(page.locator('.form-success')).toContainText('updated');
 
     await page.goto('/products');
@@ -229,8 +376,8 @@ test.describe('Admin product CRUD (full lifecycle)', () => {
     // ---- Delete ----
     await page.goto('/admin/products');
     page.on('dialog', (d) => d.accept());
-    await page.getByTestId(`product-row-${slug}`).getByRole('button', { name: 'Delete' }).click();
-    await expect(page.getByTestId(`product-row-${slug}`)).not.toBeVisible();
+    await page.getByTestId(`product-tr-${slug}`).getByRole('button', { name: 'Delete' }).click();
+    await expect(page.getByTestId(`product-tr-${slug}`)).not.toBeVisible();
 
     const res = await page.goto(`/products/${slug}`);
     expect(res?.status()).toBe(404);

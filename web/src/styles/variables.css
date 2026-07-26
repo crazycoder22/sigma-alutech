@@ -52,10 +52,19 @@
   --border-strong: #d8d0bc;
   --border-gold: rgba(160, 124, 51, 0.38);
 
+  /* ---- Form / admin ---- */
+  --text-placeholder: #a79e8a;
+  --border-dashed: #c4bba6;
+  --danger: #b4514f;
+  --danger-border: #e9c9c9;
+  --danger-bg: rgba(180, 81, 79, 0.08);
+  --ink-active: #1f1a11;   /* selected row in the ink sidebar */
+
   /* ---- Chrome ---- */
   --nav-bg: #fffdf8;
   --nav-bg-scrolled: rgba(255, 253, 248, 0.94);
   --nav-height: 64px;
+  --sidebar-width: 236px;
 
   /* Map embeds get desaturated to sit inside the palette */
   --map-filter: grayscale(0.35) sepia(0.12) contrast(1.02);
@@ -177,6 +186,12 @@
 
   --nav-bg: #14110c;
   --nav-bg-scrolled: rgba(20, 17, 12, 0.94);
+
+  --text-placeholder: #7c7362;
+  --border-dashed: #46402e;
+  --danger: #d9807e;
+  --danger-border: #5c3634;
+  --danger-bg: rgba(217, 128, 126, 0.1);
 
   --map-filter: grayscale(0.6) brightness(0.72) contrast(1.1);
 

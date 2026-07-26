@@ -1,10 +1,20 @@
 'use client';
 
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import type { CategoryDto, ProductDto } from '@/lib/types';
 import { titleCase } from '@/lib/types';
-import { ImageUploader, KeyValueEditor, StringListEditor } from './fields';
+import {
+  Field,
+  FinishChips,
+  ImageManager,
+  ReorderableList,
+  SelectField,
+  SpecTable,
+  SwitchRow,
+  TextareaField,
+} from './fields';
 
 interface Props {
   categories: CategoryDto[];
@@ -28,6 +38,17 @@ interface FormState {
   sortOrder: number;
 }
 
+const TAGLINE_LIMIT = 60;
+
+function slugify(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/&/g, ' and ')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 80);
+}
+
 function emptyForm(categoryId: number): FormState {
   return {
     id: null,
@@ -48,53 +69,103 @@ function emptyForm(categoryId: number): FormState {
   };
 }
 
-function slugify(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/&/g, ' and ')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 80);
+function toForm(p: ProductDto): FormState {
+  return {
+    id: p.id,
+    slug: p.slug,
+    categoryId: p.categoryId,
+    name: p.name,
+    series: p.series,
+    topology: p.topology,
+    tagline: p.tagline,
+    description: p.description,
+    features: p.features,
+    specEntries: Object.entries(p.specifications),
+    finishes: p.finishes,
+    images: p.images,
+    videoUrl: p.videoUrl ?? '',
+    featured: p.featured,
+    sortOrder: p.sortOrder,
+  };
+}
+
+function toPayload(f: FormState) {
+  return {
+    slug: f.slug || slugify(f.name),
+    categoryId: f.categoryId,
+    name: f.name.trim(),
+    series: f.series.trim(),
+    topology: f.topology.trim(),
+    tagline: f.tagline.trim(),
+    description: f.description.trim(),
+    features: f.features.map((x) => x.trim()).filter(Boolean),
+    specifications: Object.fromEntries(
+      f.specEntries.filter(([k, v]) => k.trim() && v.trim()).map(([k, v]) => [k.trim(), v.trim()])
+    ),
+    finishes: f.finishes.map((x) => x.trim()).filter(Boolean),
+    images: f.images,
+    videoUrl: f.videoUrl.trim() || null,
+    featured: f.featured,
+    sortOrder: f.sortOrder,
+  };
 }
 
 export function ProductsAdmin({ categories }: Props) {
   const router = useRouter();
   const [form, setForm] = useState<FormState | null>(null);
+  const [baseline, setBaseline] = useState('');
+  const [query, setQuery] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [featuredOnly, setFeaturedOnly] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [busy, setBusy] = useState(false);
 
-  const allProducts = categories.flatMap((c) =>
-    c.products.map((p) => ({ ...p, categoryName: c.name }))
+  const all = useMemo(
+    () =>
+      categories.flatMap((c) =>
+        c.products.map((p) => ({ ...p, categoryName: c.name, categorySlug: c.slug }))
+      ),
+    [categories]
   );
 
+  const visible = all.filter((p) => {
+    if (categoryFilter !== 'all' && p.categorySlug !== categoryFilter) return false;
+    if (featuredOnly && !p.featured) return false;
+    if (!query.trim()) return true;
+    const q = query.trim().toLowerCase();
+    return (
+      p.name.toLowerCase().includes(q) ||
+      p.slug.toLowerCase().includes(q) ||
+      p.series.toLowerCase().includes(q) ||
+      p.topology.toLowerCase().includes(q)
+    );
+  });
+
+  const featuredCount = all.filter((p) => p.featured).length;
+  const dirty = form !== null && JSON.stringify(toPayload(form)) !== baseline;
+
   function startCreate() {
+    const f = emptyForm(categories[0]?.id ?? 0);
     setError('');
     setSuccess('');
-    setForm(emptyForm(categories[0]?.id ?? 0));
+    setForm(f);
+    setBaseline(JSON.stringify(toPayload(f)));
   }
 
   function startEdit(p: ProductDto) {
+    const f = toForm(p);
     setError('');
     setSuccess('');
-    setForm({
-      id: p.id,
-      slug: p.slug,
-      categoryId: p.categoryId,
-      name: p.name,
-      series: p.series,
-      topology: p.topology,
-      tagline: p.tagline,
-      description: p.description,
-      features: p.features,
-      specEntries: Object.entries(p.specifications),
-      finishes: p.finishes,
-      images: p.images,
-      videoUrl: p.videoUrl ?? '',
-      featured: p.featured,
-      sortOrder: p.sortOrder,
-    });
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setForm(f);
+    setBaseline(JSON.stringify(toPayload(f)));
+    window.scrollTo({ top: 0 });
+  }
+
+  function cancel() {
+    if (dirty && !confirm('Discard unsaved changes?')) return;
+    setForm(null);
+    setError('');
   }
 
   async function save(e: React.FormEvent) {
@@ -103,28 +174,10 @@ export function ProductsAdmin({ categories }: Props) {
     setBusy(true);
     setError('');
     try {
-      const payload = {
-        slug: form.slug || slugify(form.name),
-        categoryId: form.categoryId,
-        name: form.name,
-        series: form.series,
-        topology: form.topology,
-        tagline: form.tagline,
-        description: form.description,
-        features: form.features.filter((f) => f.trim()),
-        specifications: Object.fromEntries(
-          form.specEntries.filter(([k, v]) => k.trim() && v.trim())
-        ),
-        finishes: form.finishes.filter((f) => f.trim()),
-        images: form.images,
-        videoUrl: form.videoUrl.trim() || null,
-        featured: form.featured,
-        sortOrder: form.sortOrder,
-      };
       const res = await fetch(form.id ? `/api/products/${form.id}` : '/api/products', {
         method: form.id ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(toPayload(form)),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -141,6 +194,23 @@ export function ProductsAdmin({ categories }: Props) {
     }
   }
 
+  /** Flip the featured flag straight from the list. */
+  async function toggleFeatured(p: ProductDto) {
+    setError('');
+    const payload = { ...toPayload(toForm(p)), featured: !p.featured };
+    const res = await fetch(`/api/products/${p.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setError(data.error ?? 'Could not update');
+      return;
+    }
+    router.refresh();
+  }
+
   async function remove(p: ProductDto) {
     if (!confirm(`Delete "${p.name}"? This cannot be undone.`)) return;
     setError('');
@@ -154,197 +224,365 @@ export function ProductsAdmin({ categories }: Props) {
     router.refresh();
   }
 
+  /* ---------------- Editor ---------------- */
+  if (form) {
+    const category = categories.find((c) => c.id === form.categoryId);
+    return (
+      <form onSubmit={save} data-testid="product-editor">
+        <div className="editor__head">
+          <div>
+            <button type="button" className="editor__back" onClick={cancel}>
+              ← Products
+            </button>
+            <div className="editor__label">{form.id ? 'Editing' : 'New product'}</div>
+            <div className="editor__title">{form.name || 'Untitled product'}</div>
+          </div>
+          <div className="editor__head-actions">
+            <span className={dirty ? 'editor__dirty' : 'editor__saved'} data-testid="dirty-state">
+              {dirty ? '● Unsaved changes' : 'Saved'}
+            </span>
+            <button type="button" className="btn btn--outline btn--small" onClick={cancel}>
+              Cancel
+            </button>
+            {form.id ? (
+              <Link
+                className="btn btn--outline btn--small"
+                href={`/products/${form.slug}`}
+                target="_blank"
+              >
+                Preview ↗
+              </Link>
+            ) : null}
+            <button type="submit" className="btn btn--primary btn--small" disabled={busy}>
+              {busy ? 'Saving…' : form.id ? 'Save changes' : 'Create product'}
+            </button>
+          </div>
+        </div>
+
+        {error ? (
+          <div className="admin-flash" style={{ paddingTop: 16 }}>
+            <div className="form-error">{error}</div>
+          </div>
+        ) : null}
+
+        <div className="editor__grid">
+          {/* ---- Left column ---- */}
+          <div className="editor__col">
+            <section className="panel">
+              <div className="panel__title">Basics</div>
+              <Field
+                id="p-name"
+                label="Name"
+                required
+                value={form.name}
+                onChange={(v) =>
+                  setForm({ ...form, name: v, slug: form.id ? form.slug : slugify(v) })
+                }
+              />
+              <div className="field-row field-row--3">
+                <SelectField
+                  id="p-category"
+                  label="Category"
+                  required
+                  value={form.categoryId}
+                  onChange={(v) => setForm({ ...form, categoryId: Number(v) })}
+                  options={categories.map((c) => ({ value: c.id, label: c.name }))}
+                />
+                <Field
+                  id="p-series"
+                  label="Series"
+                  placeholder="FY 65"
+                  value={form.series}
+                  onChange={(v) => setForm({ ...form, series: v })}
+                />
+                <Field
+                  id="p-topology"
+                  label="Type badge"
+                  placeholder="casement"
+                  value={form.topology}
+                  onChange={(v) => setForm({ ...form, topology: v })}
+                />
+              </div>
+              <Field
+                id="p-tagline"
+                label="Tagline"
+                softLimit={TAGLINE_LIMIT}
+                placeholder="Outward opening window with slim sightlines"
+                value={form.tagline}
+                onChange={(v) => setForm({ ...form, tagline: v })}
+              />
+              <TextareaField
+                id="p-description"
+                label="Description"
+                value={form.description}
+                onChange={(v) => setForm({ ...form, description: v })}
+              />
+            </section>
+
+            <div className="editor__pair">
+              <section className="panel">
+                <div className="panel__head">
+                  <span className="panel__title">Features</span>
+                  <span className="panel__hint">Drag to reorder</span>
+                </div>
+                <ReorderableList
+                  values={form.features}
+                  onChange={(features) => setForm({ ...form, features })}
+                  placeholder="Thermally broken profile"
+                />
+              </section>
+
+              <section className="panel">
+                <div className="panel__title">Specifications</div>
+                <SpecTable
+                  entries={form.specEntries}
+                  onChange={(specEntries) => setForm({ ...form, specEntries })}
+                />
+              </section>
+            </div>
+          </div>
+
+          {/* ---- Right column ---- */}
+          <div className="editor__col">
+            <section className="panel">
+              <div className="panel__title">Publishing</div>
+              <SwitchRow
+                id="p-featured"
+                title="Featured on homepage"
+                note="Shows in the top carousel"
+                checked={form.featured}
+                onChange={(featured) => setForm({ ...form, featured })}
+              />
+              <Field
+                id="p-slug"
+                label="Slug (auto)"
+                value={form.slug}
+                onChange={(v) => setForm({ ...form, slug: v })}
+              />
+              <Field
+                id="p-video"
+                label="YouTube video URL"
+                type="url"
+                placeholder="https://youtube.com/watch?v=…"
+                value={form.videoUrl}
+                onChange={(v) => setForm({ ...form, videoUrl: v })}
+              />
+            </section>
+
+            <section className="panel">
+              <div className="panel__head">
+                <span className="panel__title">Images</span>
+                <span className="panel__hint">{form.images.length} of 8</span>
+              </div>
+              <ImageManager
+                images={form.images}
+                onChange={(images) => setForm({ ...form, images })}
+                folder="products"
+              />
+            </section>
+
+            <section className="panel">
+              <div className="panel__title">Finishes</div>
+              <FinishChips
+                values={form.finishes}
+                onChange={(finishes) => setForm({ ...form, finishes })}
+              />
+            </section>
+
+            <section className="panel panel--preview">
+              <div className="panel__title">Card preview</div>
+              <div className="preview-card">
+                <div className="preview-card__media">
+                  {form.images[0] ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={form.images[0]} alt="" />
+                  ) : null}
+                </div>
+                <div className="preview-card__body">
+                  <span className="preview-card__kicker">
+                    {titleCase(form.topology) || category?.name || '—'}
+                  </span>
+                  <span className="preview-card__title">{form.name || 'Product name'}</span>
+                  <span className="preview-card__text">
+                    {form.tagline || 'A short line describing the product.'}
+                  </span>
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+
+        {/* Sticky save bar on mobile */}
+        <div className="editor__bar">
+          <button type="submit" className="btn btn--primary" disabled={busy}>
+            {busy ? 'Saving…' : form.id ? 'Save changes' : 'Create product'}
+          </button>
+          <button type="button" className="btn btn--outline" onClick={cancel}>
+            Cancel
+          </button>
+        </div>
+      </form>
+    );
+  }
+
+  /* ---------------- List ---------------- */
   return (
     <>
-      <div className="admin-title-row">
-        <h1 className="section-title" style={{ margin: 0 }}>Products</h1>
-        <button className="btn btn--primary btn--small" onClick={startCreate} data-testid="add-product">
-          + Add Product
+      <div className="admin-head">
+        <div>
+          <h1 className="admin-head__title">Products</h1>
+          <div className="admin-head__meta">
+            {all.length} items · {featuredCount} featured on homepage
+          </div>
+        </div>
+        <div className="admin-head__actions">
+          <div className="search">
+            <span className="search__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6">
+                <circle cx="11" cy="11" r="7" />
+                <path d="M20 20l-3.5-3.5" />
+              </svg>
+            </span>
+            <input
+              type="search"
+              placeholder="Search products…"
+              aria-label="Search products"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+          </div>
+          <button className="btn btn--primary btn--small" onClick={startCreate} data-testid="add-product">
+            + Add product
+          </button>
+        </div>
+      </div>
+
+      <div className="admin-filters">
+        <button
+          className={`filter-btn${categoryFilter === 'all' && !featuredOnly ? ' active' : ''}`}
+          data-category="all"
+          onClick={() => {
+            setCategoryFilter('all');
+            setFeaturedOnly(false);
+          }}
+        >
+          All {all.length}
+        </button>
+        {categories.map((c) => (
+          <button
+            key={c.slug}
+            className={`filter-btn${categoryFilter === c.slug ? ' active' : ''}`}
+            data-category={c.slug}
+            onClick={() => setCategoryFilter(c.slug)}
+          >
+            {c.name}
+          </button>
+        ))}
+        <button
+          className={`filter-btn admin-filters__spacer${featuredOnly ? ' active' : ''}`}
+          data-testid="featured-filter"
+          onClick={() => setFeaturedOnly((v) => !v)}
+        >
+          ★ Featured only
         </button>
       </div>
 
-      {error && !form ? <div className="form-error">{error}</div> : null}
-      {success ? <div className="form-success">{success}</div> : null}
-
-      {form ? (
-        <form className="admin-editor" onSubmit={save} data-testid="product-editor">
-          <h2>{form.id ? `Edit: ${form.name}` : 'New Product'}</h2>
+      {error || success ? (
+        <div className="admin-flash" style={{ paddingTop: 16 }}>
           {error ? <div className="form-error">{error}</div> : null}
-
-          <div className="form-row">
-            <div className="form-field">
-              <label htmlFor="p-name">Name *</label>
-              <input
-                id="p-name"
-                type="text"
-                required
-                value={form.name}
-                onChange={(e) =>
-                  setForm({
-                    ...form,
-                    name: e.target.value,
-                    slug: form.id ? form.slug : slugify(e.target.value),
-                  })
-                }
-              />
-            </div>
-            <div className="form-field">
-              <label htmlFor="p-category">Category *</label>
-              <select
-                id="p-category"
-                value={form.categoryId}
-                onChange={(e) => setForm({ ...form, categoryId: Number(e.target.value) })}
-              >
-                {categories.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div className="form-row">
-            <div className="form-field">
-              <label htmlFor="p-series">Series (e.g. FY 65)</label>
-              <input
-                id="p-series"
-                type="text"
-                value={form.series}
-                onChange={(e) => setForm({ ...form, series: e.target.value })}
-              />
-            </div>
-            <div className="form-field">
-              <label htmlFor="p-topology">Type badge (e.g. casement, sliding)</label>
-              <input
-                id="p-topology"
-                type="text"
-                value={form.topology}
-                onChange={(e) => setForm({ ...form, topology: e.target.value })}
-              />
-            </div>
-          </div>
-
-          <div className="form-field">
-            <label htmlFor="p-tagline">Tagline (one line on the card)</label>
-            <input
-              id="p-tagline"
-              type="text"
-              value={form.tagline}
-              onChange={(e) => setForm({ ...form, tagline: e.target.value })}
-            />
-          </div>
-
-          <div className="form-field">
-            <label htmlFor="p-description">Description</label>
-            <textarea
-              id="p-description"
-              value={form.description}
-              onChange={(e) => setForm({ ...form, description: e.target.value })}
-            ></textarea>
-          </div>
-
-          <StringListEditor
-            label="Features"
-            values={form.features}
-            onChange={(features) => setForm({ ...form, features })}
-            placeholder="e.g. Thermally broken profile"
-          />
-
-          <KeyValueEditor
-            label="Specifications"
-            entries={form.specEntries}
-            onChange={(specEntries) => setForm({ ...form, specEntries })}
-          />
-
-          <StringListEditor
-            label="Finishes"
-            values={form.finishes}
-            onChange={(finishes) => setForm({ ...form, finishes })}
-            placeholder="e.g. Anodized"
-          />
-
-          <ImageUploader
-            label="Images"
-            images={form.images}
-            onChange={(images) => setForm({ ...form, images })}
-            folder="products"
-            hint="First image is the main card image. JPG/PNG/WebP up to 8 MB."
-          />
-
-          <div className="form-row">
-            <div className="form-field">
-              <label htmlFor="p-video">YouTube video URL (optional)</label>
-              <input
-                id="p-video"
-                type="url"
-                placeholder="https://www.youtube.com/watch?v=..."
-                value={form.videoUrl}
-                onChange={(e) => setForm({ ...form, videoUrl: e.target.value })}
-              />
-            </div>
-            <div className="form-field">
-              <label htmlFor="p-slug">Slug (URL id — auto-generated)</label>
-              <input
-                id="p-slug"
-                type="text"
-                value={form.slug}
-                onChange={(e) => setForm({ ...form, slug: e.target.value })}
-              />
-            </div>
-          </div>
-
-          <div className="form-field form-field--checkbox">
-            <input
-              id="p-featured"
-              type="checkbox"
-              checked={form.featured}
-              onChange={(e) => setForm({ ...form, featured: e.target.checked })}
-            />
-            <label htmlFor="p-featured">Featured on homepage</label>
-          </div>
-
-          <div className="flex gap-md">
-            <button type="submit" className="btn btn--primary" disabled={busy}>
-              {busy ? 'Saving…' : form.id ? 'Save Changes' : 'Create Product'}
-            </button>
-            <button type="button" className="btn btn--outline" onClick={() => setForm(null)}>
-              Cancel
-            </button>
-          </div>
-        </form>
+          {success ? <div className="form-success">{success}</div> : null}
+        </div>
       ) : null}
 
-      <table className="admin-table">
-        <thead>
-          <tr>
-            <th></th>
-            <th>Name</th>
-            <th>Category</th>
-            <th>Type</th>
-            <th>Featured</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          {allProducts.map((p) => (
-            <tr key={p.id} data-testid={`product-row-${p.slug}`}>
-              <td>
-                { }
+      <div className="admin-body">
+        {visible.length === 0 ? (
+          <div className="admin-empty">No products match this search.</div>
+        ) : null}
+
+        {/* Card list — mobile */}
+        <div className="rec-list">
+          {visible.map((p) => (
+            <div className="rec" key={p.id} data-testid={`product-row-${p.slug}`}>
+              {p.images[0] ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img className="rec__thumb" src={p.images[0]} alt="" />
+              ) : (
+                <div className="rec__thumb"></div>
+              )}
+              <div className="rec__body">
+                <div className="rec__top">
+                  <span className="rec__name">{p.name}</span>
+                  <button
+                    className={`star${p.featured ? ' star--on' : ''}`}
+                    onClick={() => toggleFeatured(p)}
+                    aria-label={p.featured ? 'Unfeature' : 'Feature'}
+                  >
+                    {p.featured ? '★' : '☆'}
+                  </button>
+                </div>
+                <span className="rec__slug">{p.slug}</span>
+                <div className="rec__tags">
+                  <span className="tag--cat">{p.categoryName}</span>
+                  {p.topology ? <span className="tag--type">{titleCase(p.topology)}</span> : null}
+                </div>
+                <div className="rec__actions">
+                  <button className="btn btn--outline btn--small" onClick={() => startEdit(p)}>
+                    Edit
+                  </button>
+                  <button
+                    className="btn btn--outline btn--small"
+                    onClick={() => toggleFeatured(p)}
+                  >
+                    {p.featured ? 'Unfeature' : 'Feature'}
+                  </button>
+                  <button
+                    className="icon-btn icon-btn--danger"
+                    onClick={() => remove(p)}
+                    aria-label={`Delete ${p.name}`}
+                  >
+                    ⌫
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Table — desktop */}
+        {visible.length ? (
+          <div className="rec-table">
+            <div className="rec-row rec-row--head">
+              <div></div>
+              <div>Name</div>
+              <div>Category</div>
+              <div>Type</div>
+              <div>Featured</div>
+              <div></div>
+            </div>
+            {visible.map((p) => (
+              <div className="rec-row" key={p.id} data-testid={`product-tr-${p.slug}`}>
                 {p.images[0] ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img className="admin-table__thumb" src={p.images[0]} alt="" />
+                  <img className="rec-row__thumb" src={p.images[0]} alt="" />
                 ) : (
-                  <div className="admin-table__thumb"></div>
+                  <div className="rec-row__thumb"></div>
                 )}
-              </td>
-              <td>
-                <strong>{p.name}</strong>
-                <div style={{ color: 'var(--text-muted)', fontSize: 'var(--fs-xs)' }}>{p.slug}</div>
-              </td>
-              <td>{p.categoryName}</td>
-              <td>{titleCase(p.topology)}</td>
-              <td>{p.featured ? '★' : ''}</td>
-              <td>
-                <div className="admin-table__actions">
+                <div>
+                  <div className="rec-row__name">{p.name}</div>
+                  <div className="rec__slug">{p.slug}</div>
+                </div>
+                <div className="rec-row__cell">{p.categoryName}</div>
+                <div className="rec-row__cell">{titleCase(p.topology)}</div>
+                <div>
+                  <button
+                    className={`star${p.featured ? ' star--on' : ''}`}
+                    onClick={() => toggleFeatured(p)}
+                    aria-label={p.featured ? `Unfeature ${p.name}` : `Feature ${p.name}`}
+                  >
+                    {p.featured ? '★' : '☆'}
+                  </button>
+                </div>
+                <div className="rec-row__actions">
                   <button className="btn btn--outline btn--small" onClick={() => startEdit(p)}>
                     Edit
                   </button>
@@ -352,11 +590,17 @@ export function ProductsAdmin({ categories }: Props) {
                     Delete
                   </button>
                 </div>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+              </div>
+            ))}
+          </div>
+        ) : null}
+
+        <div className="admin-sticky-add">
+          <button className="btn btn--primary" onClick={startCreate}>
+            + Add product
+          </button>
+        </div>
+      </div>
     </>
   );
 }
