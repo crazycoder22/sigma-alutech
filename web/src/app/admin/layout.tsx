@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { getSession } from '@/lib/auth';
 import { getSiteStats } from '@/lib/catalog';
+import { listEmployees } from '@/lib/payroll/store';
 import { AdminChrome } from '@/components/admin/AdminChrome';
 
 export const metadata: Metadata = {
@@ -18,7 +19,7 @@ export default async function AdminLayout({
     return <div className="admin admin--auth">{children}</div>;
   }
 
-  const stats = await getSiteStats();
+  const [stats, staff] = await Promise.all([getSiteStats(), listEmployees()]);
 
   return (
     <div className="admin admin--app">
@@ -26,6 +27,7 @@ export default async function AdminLayout({
         email={session.email}
         productCount={stats.products}
         projectCount={stats.projects}
+        employeeCount={staff.length}
       />
       <div className="admin__main">{children}</div>
     </div>

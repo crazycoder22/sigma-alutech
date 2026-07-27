@@ -7,6 +7,7 @@ interface Props {
   email: string;
   productCount: number;
   projectCount: number;
+  employeeCount: number;
 }
 
 function initials(email: string): string {
@@ -61,12 +62,19 @@ function InkThemeToggle() {
   );
 }
 
-export function AdminChrome({ email, productCount, projectCount }: Props) {
+export function AdminChrome({
+  email,
+  productCount,
+  projectCount,
+  employeeCount,
+}: Props) {
   const pathname = usePathname();
   const router = useRouter();
 
   const onProducts = pathname.startsWith('/admin/products');
   const onProjects = pathname.startsWith('/admin/projects');
+  const onEmployees = pathname.startsWith('/admin/employees');
+  const onPayroll = pathname.startsWith('/admin/payroll');
 
   async function signOut() {
     await fetch('/api/auth/logout', { method: 'POST' });
@@ -110,6 +118,18 @@ export function AdminChrome({ email, productCount, projectCount }: Props) {
           >
             Projects <span className="admin-tab__count">{projectCount}</span>
           </Link>
+          <Link
+            href="/admin/payroll"
+            className={`admin-tab${onPayroll ? ' active' : ''}`}
+          >
+            Payroll
+          </Link>
+          <Link
+            href="/admin/employees"
+            className={`admin-tab${onEmployees ? ' active' : ''}`}
+          >
+            Staff <span className="admin-tab__count">{employeeCount}</span>
+          </Link>
           <Link href="/" className="admin-tab" target="_blank">
             Site ↗
           </Link>
@@ -138,13 +158,19 @@ export function AdminChrome({ email, productCount, projectCount }: Props) {
           >
             Projects <span className="admin-side__count">{projectCount}</span>
           </Link>
-          {/* Planned, not built — shown so the roadmap is visible but honest. */}
-          <span className="admin-side__link admin-side__link--disabled">
-            Enquiries <span className="admin-side__soon">Soon</span>
-          </span>
-          <span className="admin-side__link admin-side__link--disabled">
-            Media library <span className="admin-side__soon">Soon</span>
-          </span>
+          <span className="admin-side__group">Payroll</span>
+          <Link
+            href="/admin/payroll"
+            className={`admin-side__link${onPayroll ? ' active' : ''}`}
+          >
+            Pay months
+          </Link>
+          <Link
+            href="/admin/employees"
+            className={`admin-side__link${onEmployees ? ' active' : ''}`}
+          >
+            Employees <span className="admin-side__count">{employeeCount}</span>
+          </Link>
         </nav>
 
         <div className="admin-side__foot">

@@ -1400,3 +1400,258 @@
   color: var(--text-muted);
   font-size: var(--fs-body);
 }
+
+/* ============================================================
+   Payroll
+   ============================================================ */
+
+.admin-side__group {
+  padding: 20px 22px 6px;
+  font-size: 0.5625rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--text-on-ink-muted);
+}
+
+/* Notices that are neither errors nor successes */
+.notice {
+  border: 1px solid var(--border-strong);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: var(--fs-body);
+  line-height: var(--lh-normal);
+  padding: 12px 14px;
+  margin-bottom: var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* ---- Run summary strip ---- */
+.run-summary {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  margin-bottom: var(--space-lg);
+}
+
+@media (min-width: 900px) {
+  .run-summary {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+
+.run-summary__item {
+  background: var(--bg-surface);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.run-summary__item--net {
+  background: var(--bg-secondary);
+}
+
+.run-summary__label {
+  font-size: var(--fs-micro);
+  letter-spacing: var(--ls-wider);
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.run-summary__value {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  color: var(--text-primary);
+}
+
+/* ---- Editable pay grid ---- */
+.grid-scroll {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+}
+
+.pay-grid {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-small);
+  min-width: 1000px;
+}
+
+.pay-grid th {
+  text-align: right;
+  font-size: var(--fs-micro);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: var(--fw-medium);
+  padding: 12px 8px;
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.pay-grid td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+  text-align: right;
+  vertical-align: middle;
+}
+
+.pay-grid tr:last-child td {
+  border-bottom: none;
+}
+
+.pay-grid__name,
+.pay-grid th.pay-grid__name {
+  text-align: left;
+  position: sticky;
+  left: 0;
+  background: var(--bg-surface);
+  min-width: 180px;
+  z-index: 2;
+}
+
+.pay-grid th.pay-grid__name {
+  background: var(--bg-primary);
+  z-index: 3;
+}
+
+.pay-grid__person {
+  font-weight: var(--fw-medium);
+  color: var(--text-primary);
+}
+
+.pay-grid__phone {
+  font-size: var(--fs-micro);
+  color: var(--text-placeholder);
+  margin-top: 2px;
+}
+
+/* Net paid is the number that matters, so pin it to the right edge the
+   way the name column is pinned to the left. */
+.pay-grid__net,
+.pay-grid th.pay-grid__net {
+  font-weight: var(--fw-medium);
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+  white-space: nowrap;
+  position: sticky;
+  right: 0;
+  z-index: 2;
+  border-left: 1px solid var(--border);
+  min-width: 104px;
+}
+
+.pay-grid th.pay-grid__net {
+  z-index: 3;
+}
+
+.grid-input {
+  width: 78px;
+  text-align: right;
+  padding: 8px 10px;
+  font-size: var(--fs-small);
+  color: var(--text-primary);
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  outline: none;
+  transition: border-color var(--transition-fast);
+}
+
+.grid-input:focus {
+  border-color: var(--gold);
+  background: var(--bg-surface);
+}
+
+/* Hide the number spinners — they make narrow cells unusable */
+.grid-input::-webkit-outer-spin-button,
+.grid-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.grid-input[type='number'] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+/* ---- Delivery status chips ---- */
+.chip-ok,
+.chip-bad,
+.chip-warn,
+.chip-idle {
+  display: inline-block;
+  font-size: var(--fs-micro);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 4px 9px;
+  white-space: nowrap;
+}
+
+.chip-ok {
+  background: rgba(60, 140, 90, 0.12);
+  color: #3c7f56;
+}
+
+.chip-bad {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+
+.chip-warn {
+  background: var(--gold-subtle);
+  color: var(--gold-hover);
+}
+
+.chip-idle {
+  color: var(--text-placeholder);
+}
+
+/* ---- Wider admin tables for employees and runs ---- */
+.rec-table--always {
+  display: block;
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+}
+
+.rec-row--emp {
+  grid-template-columns: 2fr 1.2fr 1fr 1fr 1fr 200px;
+}
+
+.rec-row--run {
+  grid-template-columns: 1.5fr 1fr 1.2fr 1.4fr 200px;
+}
+
+@media (max-width: 1023px) {
+  .rec-table--always .rec-row {
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+  }
+  .rec-table--always .rec-row--head {
+    display: none;
+  }
+  .rec-table--always .rec-row > div:nth-child(n + 2):nth-child(-n + 4) {
+    display: none;
+  }
+}
+
+.notice__sample {
+  border-top: 1px solid var(--border-strong);
+  margin-top: 6px;
+  padding-top: 8px;
+  font-size: var(--fs-small);
+  color: var(--text-muted);
+}
+
+.notice__sample em {
+  color: var(--text-primary);
+  font-style: normal;
+}

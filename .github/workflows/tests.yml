@@ -71,6 +71,7 @@ jobs:
         run: |
           npm run db:migrate-json
           npm run db:seed-admin
+          npm run db:seed-payroll
 
       - name: Run Vitest (unit + integration)
         run: npm test

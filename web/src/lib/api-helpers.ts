@@ -35,6 +35,15 @@ export async function withErrorHandling<T>(fn: Handler<NextResponse | T>) {
   }
 }
 
+/**
+ * Parse a route id. Returns null for anything non-numeric so a bad path
+ * segment becomes a 404 rather than a database error.
+ */
+export function parseId(raw: string): number | null {
+  const n = Number(raw);
+  return Number.isInteger(n) && n > 0 ? n : null;
+}
+
 export function notFound(what = 'Resource') {
   return NextResponse.json({ error: `${what} not found` }, { status: 404 });
 }

@@ -74,6 +74,39 @@ export async function saveImage(
   return `/uploads/${key}`;
 }
 
+/**
+ * Store a generated document (payslip PDFs) and return its URL.
+ * Same drivers as images; the caller supplies the exact filename because
+ * it is what the employee sees in WhatsApp.
+ */
+export async function saveDocument(
+  bytes: Buffer,
+  folder: string,
+  filename: string,
+  contentType = 'application/pdf'
+): Promise<string> {
+  const safeFolder = folder.replace(/[^a-zA-Z0-9/_-]/g, '');
+  const safeName = filename.replace(/[^a-zA-Z0-9._-]/g, '-');
+  const key = `${safeFolder}/${safeName}`;
+
+  if (usingBlob()) {
+    const { put } = await import('@vercel/blob');
+    const blob = await put(`documents/${key}`, bytes, {
+      access: 'public',
+      contentType,
+      // Payslips are regenerated in place when a run is re-run.
+      addRandomSuffix: false,
+      allowOverwrite: true,
+    });
+    return blob.url;
+  }
+
+  const target = path.join(process.cwd(), 'public', 'uploads', 'documents', key);
+  await mkdir(path.dirname(target), { recursive: true });
+  await writeFile(target, bytes);
+  return `/uploads/documents/${key}`;
+}
+
 /** Best-effort delete of a previously stored image (either driver). */
 export async function deleteImage(url: string): Promise<void> {
   try {

@@ -4,6 +4,8 @@ The dynamic replacement for the static GitHub Pages site in the repo root.
 Product catalog and project portfolio live in **Postgres**; images upload to
 **Vercel Blob** (production) or `public/uploads/` (local dev); a custom
 **admin panel** at `/admin` manages everything with email + password login.
+The admin also runs **payroll**: a monthly salary sheet goes in, payslip PDFs
+come out, and each one is delivered to the employee over WhatsApp.
 
 **Live:** https://sigma-alutech.vercel.app · admin at `/admin`
 **Public domain:** `sigmaalutech.in` still serves the *legacy* static site on
@@ -20,6 +22,8 @@ GitHub Pages — see [Domain cutover](#domain-cutover-not-done-yet).
 | Image storage | Vercel Blob, with a local-filesystem driver for dev |
 | Auth | Email + password (bcrypt), signed HttpOnly session cookie (jose) |
 | Validation | Zod (shared schemas for API input) |
+| Payslips | ExcelJS (sheet import) · pdf-lib (PDF) · JSZip (bulk download) |
+| Messaging | WhatsApp Business Cloud API, with a simulation provider by default |
 | Tests | Vitest (unit + integration vs real Postgres) · Playwright (e2e) |
 | CI | GitHub Actions on every push and PR to `main` |
 
@@ -73,7 +77,8 @@ its root), framework preset `nextjs`, Node `24.x`.
 
 **Neon Postgres** — `ep-twilight-sea-azrzayre-pooler.c-3.ap-southeast-1.aws.neon.tech/neondb`,
 Singapore region, accessed through the **pooled** endpoint with `sslmode=require`.
-Holds `categories`, `products`, `project_categories`, `projects`, `admins`.
+Holds `categories`, `products`, `project_categories`, `projects`, `admins`,
+`employees`, `payroll_runs`, `payroll_lines`.
 The connection pool is capped at 1 per invocation in production
 (`src/db/index.ts`) because serverless functions are short-lived.
 
@@ -92,6 +97,10 @@ Set in Vercel → Settings → Environment Variables (Production + Preview):
 | `DATABASE_URL` | Neon connection string | All database access |
 | `BLOB_READ_WRITE_TOKEN` | created by connecting the Blob store | Image upload/delete. **Absent ⇒ the app falls back to the filesystem and uploads fail on Vercel** |
 | `SESSION_SECRET` | `openssl rand -hex 32` | Signs the admin session cookie. Rotating it logs every admin out |
+| `WHATSAPP_PROVIDER` | `mock` (default) or `meta` | **While this is not `meta`, payslip delivery is simulated — nothing reaches an employee** |
+| `WHATSAPP_TOKEN` | Meta app → WhatsApp → API access token | Authenticates the send |
+| `WHATSAPP_PHONE_NUMBER_ID` | Meta → WhatsApp → API setup | The business number messages are sent from |
+| `WHATSAPP_TEMPLATE` | approved template name (default `payslip_notification`) | Business-initiated messages must use an approved template |
 
 `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` are **not** deployed — they are only
 read by the local seed script.
@@ -104,7 +113,7 @@ can be deleted; nothing reads it.
 ```
 push to main ──┬──▶ GitHub Actions ── legacy Vitest
                │                    └ web: schema push → JSON migrate → seed →
-               │                         Vitest (29) → Playwright (37)
+               │                         Vitest (59) → Playwright (44)
                └──▶ Vercel ── npm ci → next build → promote to production
 ```
 
@@ -132,6 +141,7 @@ Other one-off scripts, same pattern:
 | `npm run db:push` | Sync `src/db/schema.ts` to the database |
 | `npm run db:migrate-json` | Re-import `../data/*.json` (idempotent, matches on slug) |
 | `npm run db:seed-admin` | Create an admin, or reset an existing one's password |
+| `npm run db:seed-payroll` | Add eight **invented** demo employees (skips names already present) |
 
 To add or reset an admin login:
 
@@ -142,6 +152,44 @@ SEED_ADMIN_EMAIL='someone@example.com' \
 SEED_ADMIN_PASSWORD='<strong password>' \
 npm run db:seed-admin
 ```
+
+## Payroll and payslips
+
+`/admin/employees` keeps the staff register (name, WhatsApp number, monthly
+gross, PF, bus pass). `/admin/payroll` runs a month:
+
+1. **Start the month** — pick a pay month; one run per month.
+2. **Upload the salary sheet** — the office `.xls`/`.xlsx` is parsed and matched
+   to employees by name. Rows with no matching employee, or an employee with no
+   phone number, are listed rather than silently dropped.
+3. **Review** — an editable grid; every figure recalculates live as you type,
+   with running totals. Nothing is committed until *Save draft*.
+4. **Generate** — one A4 payslip PDF per person, stored in Blob. *Download all*
+   zips the lot, and is rendered on the fly so it works before generating.
+5. **Send** — the PDF goes to each employee's WhatsApp number. People without a
+   number are skipped with the reason recorded against their line.
+
+The arithmetic mirrors the office spreadsheet exactly, including the 8.5-hour
+day used to price overtime, and was reconciled against a real month's sheet for
+all 38 people before being committed (that sheet is **not** in this repo; the
+committed fixture is invented data).
+
+Money is stored as **integer paise** throughout — no floats — so totals cannot
+drift. Each payslip line **snapshots** the employee's name, phone and gross at
+generation time, so editing or deleting someone later never rewrites a payslip
+that has already been issued.
+
+### Delivery is simulated until WhatsApp is connected
+
+`WHATSAPP_PROVIDER` defaults to `mock`. The mock validates numbers and message
+bodies exactly like the live provider and records per-line delivery status, but
+contacts nobody, and the admin screen says so before you press Send. Going live
+needs, on Meta's side: a verified WhatsApp Business account, a business phone
+number (a personal WhatsApp number cannot be automated), and an **approved
+message template** — business-initiated messages cannot be free text. Then set
+the four `WHATSAPP_*` variables in Vercel.
+
+Sending is one click today. A scheduled 6 PM run on salary day is not built yet.
 
 ## Domain cutover (not done yet)
 
@@ -213,6 +261,7 @@ npm run db:push                                  # create tables
 DATABASE_URL=postgres://sigma:sigma@localhost:55432/sigma_test npx drizzle-kit push  # test DB
 npm run db:migrate-json                          # import legacy data/*.json content
 SEED_ADMIN_EMAIL=admin@sigmaalutech.in SEED_ADMIN_PASSWORD=sigma-admin-2026 npm run db:seed-admin
+npm run db:seed-payroll                          # demo staff register (invented data)
 
 # 3. Run
 npm run dev            # http://localhost:3000  (admin at /admin)
@@ -228,12 +277,17 @@ npm run test:e2e       # Playwright: full user flows incl. admin CRUD + upload
 npm run test:all
 ```
 
+Payroll tests need the demo register: `npm run db:seed-payroll`.
+
 Playwright boots its own dev server on port 3100. Coverage includes: public
 pages rendering from the database, category filters and deep links, product and
 project detail routes plus their 404s, the three navigation bar variants, theme
 persistence, admin login guards, list search/filter/star-toggle, editor
 dirty-state and reordering, and a full product create → verify-on-site → edit →
-delete lifecycle with a real image upload.
+delete lifecycle with a real image upload. For payroll: the salary formula
+against hand-checked figures, workbook parsing, the snapshot and cascade rules
+in the database, and a full month end-to-end — upload → live recalculation →
+save → generate 8 PDFs → simulated send with one person correctly skipped.
 
 ## Code map
 
@@ -246,6 +300,16 @@ delete lifecycle with a real image upload.
 - `src/lib/storage.ts` — upload driver: Vercel Blob when `BLOB_READ_WRITE_TOKEN`
   is set, `public/uploads/` otherwise. 8 MB limit, images only.
 - `src/lib/site.ts` — company contact details used across the chrome.
+- `src/lib/payroll/calc.ts` — the salary formula (pro-rata, overtime at an
+  8.5-hour day, allowances, deductions) plus rupee/paise helpers.
+- `src/lib/payroll/import.ts` — reads the office workbook by column position,
+  tolerating its blank spacer rows, and matches names to employees.
+- `src/lib/payroll/pdf.ts` — the payslip layout (pdf-lib; letter-spacing is
+  drawn by hand since pdf-lib has no `characterSpacing`).
+- `src/lib/payroll/whatsapp.ts` — provider interface, phone normalisation to
+  `91…`, the message wording, and the mock/Meta implementations.
+- `src/lib/payroll/store.ts` — employee CRUD and run/line persistence; derived
+  figures are recomputed on save rather than trusted from the client.
 - `src/app/api/*` — REST routes. GETs are public; POST/PUT/DELETE require the
   admin session cookie. Errors map uniformly to 400/401/404/409.
 - `src/styles/*` — design tokens plus component/page layers; `variables.css`

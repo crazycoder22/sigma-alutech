@@ -1,8 +1,8 @@
 import { NextRequest } from 'next/server';
 import { requireAdmin } from '@/lib/auth';
-import { productInputSchema, normalizeYouTubeUrl } from '@/lib/validation';
-import { updateProduct, deleteProduct } from '@/lib/catalog';
 import { withErrorHandling, notFound, parseId } from '@/lib/api-helpers';
+import { deleteEmployee, updateEmployee } from '@/lib/payroll/store';
+import { employeeSchema, toEmployeeRecord } from '../route';
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -10,12 +10,11 @@ export async function PUT(req: NextRequest, { params }: Params) {
   return withErrorHandling(async () => {
     await requireAdmin();
     const id = parseId((await params).id);
-    if (id === null) return notFound('Product');
-    const input = productInputSchema.parse(await req.json());
-    input.videoUrl = normalizeYouTubeUrl(input.videoUrl);
-    const product = await updateProduct(id, input);
-    if (!product) return notFound('Product');
-    return { product };
+    if (id === null) return notFound('Employee');
+    const input = employeeSchema.parse(await req.json());
+    const employee = await updateEmployee(id, toEmployeeRecord(input));
+    if (!employee) return notFound('Employee');
+    return { employee };
   });
 }
 
@@ -23,9 +22,9 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
   return withErrorHandling(async () => {
     await requireAdmin();
     const id = parseId((await params).id);
-    if (id === null) return notFound('Product');
-    const product = await deleteProduct(id);
-    if (!product) return notFound('Product');
+    if (id === null) return notFound('Employee');
+    const employee = await deleteEmployee(id);
+    if (!employee) return notFound('Employee');
     return { ok: true };
   });
 }
