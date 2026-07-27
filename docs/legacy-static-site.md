@@ -2,13 +2,14 @@
 
 The original hand-written site in the repository root: plain HTML, CSS and
 vanilla JS, content in `data/*.json`, images committed to `images/`, deployed
-by GitHub Pages. It is still what `sigmaalutech.in` serves, because the domain
-has not been pointed at Vercel yet.
+by GitHub Pages. It is reachable only at `crazycoder22.github.io/sigma-alutech/`
+— `sigmaalutech.in` points at GitHub but has no custom domain configured
+against the Pages site, so that name returns *Site not found*.
 
 Its replacement — Next.js, Postgres, Blob, a custom admin and payroll — lives
 in [`web/`](../web/README.md). **New work belongs there.** Everything below
 applies only to the legacy site, and stops mattering the day the domain moves
-(see [Domain cutover](../web/README.md#domain-cutover-not-done-yet)).
+(see [Domain cutover](../web/README.md#domain-cutover-in-progress)).
 
 ---
 

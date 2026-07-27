@@ -9,7 +9,7 @@ This repository holds the company's website and the office's payroll tool.
 |---|---|
 | **App** | [`web/`](web/README.md) — Next.js 16, Postgres, Vercel Blob, custom admin, payroll |
 | **Live** | https://sigma-alutech.vercel.app · admin at `/admin` |
-| **Public domain** | `sigmaalutech.in` — still the **legacy** static site, see [Domain cutover](web/README.md#domain-cutover-not-done-yet) |
+| **Public domain** | `sigmaalutech.in` — **not serving anything**, cutover in progress, see [Domain cutover](web/README.md#domain-cutover-in-progress) |
 | **Legacy site** | repository root (`index.html`, `css/`, `js/`, `data/`) — [documented separately](docs/legacy-static-site.md) |
 
 The app does three jobs: it publishes the product catalog and project
@@ -60,8 +60,9 @@ Two paths exist in code but carry no traffic yet, drawn dashed above:
   line, delivered to nobody, and the screen says so before you press Send.
   Going live needs a verified WhatsApp Business account, a business number (a
   personal number cannot be automated) and an approved message template.
-- **The domain** — `sigmaalutech.in` still resolves to GitHub Pages. Both sites
-  are live on different hostnames from this one repository.
+- **The domain** — `sigmaalutech.in` resolves to GitHub Pages, but Pages has no
+  custom domain configured against it, so the name returns *Site not found*.
+  It is now attached to the Vercel project and waiting on DNS.
 
 ## Managed services
 

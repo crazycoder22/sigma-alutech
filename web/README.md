@@ -12,8 +12,8 @@ The repository-level overview and deployment architecture live in the
 [root README](../README.md); this file is the app's own detail.
 
 **Live:** https://sigma-alutech.vercel.app · admin at `/admin`
-**Public domain:** `sigmaalutech.in` still serves the *legacy* static site on
-GitHub Pages — see [Domain cutover](#domain-cutover-not-done-yet).
+**Public domain:** `sigmaalutech.in` is mid-cutover and currently serves
+nothing — see [Domain cutover](#domain-cutover-in-progress).
 
 ## Stack
 
@@ -74,7 +74,7 @@ Two dashed paths are built but carry no traffic yet:
   nobody. See [Payroll and payslips](#payroll-and-payslips).
 - **The domain** — `sigmaalutech.in` still resolves to the legacy GitHub Pages
   site in the repo root. The Next.js app is only on its Vercel URL. See
-  [Domain cutover](#domain-cutover-not-done-yet).
+  [Domain cutover](#domain-cutover-in-progress).
 
 ## Environments
 
@@ -217,23 +217,51 @@ the four `WHATSAPP_*` variables in Vercel.
 
 Sending is one click today. A scheduled 6 PM run on salary day is not built yet.
 
-## Domain cutover (not done yet)
+## Domain cutover (in progress)
 
-`sigmaalutech.in` currently resolves to **GitHub Pages**, serving the legacy
-static site from the repo root (`CNAME` + `.nojekyll` at the root). The Next.js
-app is only reachable at its Vercel URL.
+**As of 2026-07-27 `sigmaalutech.in` serves nothing.** Its DNS still points at
+GitHub Pages, but the Pages site has no custom domain configured against it
+(`gh api repos/crazycoder22/sigma-alutech/pages` reports `"cname": null`), so
+the name returns GitHub's *Site not found* page over both http and https. The
+legacy site is only reachable at `crazycoder22.github.io/sigma-alutech/`.
 
-To switch:
+Nothing is therefore lost by pointing the domain at Vercel — there is no
+working site to take down.
 
-1. Vercel → project → **Domains** → add `sigmaalutech.in` and `www.sigmaalutech.in`.
-2. Update the DNS records at the registrar to the values Vercel shows
-   (replacing the GitHub Pages `A`/`CNAME` records).
-3. Once traffic is confirmed on Vercel, delete the root `CNAME` file and
-   disable GitHub Pages so the two can't diverge.
-4. Optional: remove the legacy site (root `index.html`, `css/`, `js/`, `data/`,
-   `admin/` Decap config) — the Next.js app supersedes all of it.
+**Done:** `sigmaalutech.in` and `www.sigmaalutech.in` are attached to the Vercel
+project.
 
-Until step 3, **both sites are live** on different hostnames from the same repo.
+**Outstanding — at the registrar (GoDaddy, nameservers `ns61/ns62.domaincontrol.com`):**
+
+| Action | Type | Host | Value |
+|---|---|---|---|
+| delete | A | `@` | `185.199.108.153`, `.109.153`, `.110.153`, `.111.153` (GitHub Pages) |
+| delete | CNAME | `www` | `crazycoder22.github.io` |
+| add | A | `@` | `216.198.79.1` |
+| add | A | `@` | `64.29.17.1` |
+| add | CNAME | `www` | `fe7c7c8b4208ce95.vercel-dns-017.com` |
+
+The zone holds no MX or TXT records, so no email or domain verification breaks.
+Vercel issues the certificate automatically once the records resolve; the
+current TTL is 10 minutes.
+
+Switching the nameservers to `ns1/ns2.vercel-dns.com` instead would also work,
+and is safe here for the same reason — but it hands all future DNS for the
+domain to Vercel, so the records above are the smaller change.
+
+**Then, once traffic is confirmed on Vercel:**
+
+1. Delete the root `CNAME` file and disable GitHub Pages, so the two cannot
+   diverge.
+2. Optionally remove the legacy site itself (root `index.html`, `css/`, `js/`,
+   `data/`, `admin/`) — the app supersedes all of it.
+
+Check progress with:
+
+```bash
+dig +short sigmaalutech.in A
+cd web && vercel domains inspect sigmaalutech.in
+```
 
 ## Runbook
 
