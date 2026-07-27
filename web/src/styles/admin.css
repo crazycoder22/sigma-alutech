@@ -1359,6 +1359,22 @@
   margin-bottom: var(--space-lg);
 }
 
+.admin-login form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+/* The form's own gap handles the spacing here. */
+.admin-login .form-error {
+  margin-bottom: 0;
+}
+
+.admin-login .btn {
+  width: 100%;
+  margin-top: 4px;
+}
+
 /* ============================================================
    Messages
    ============================================================ */

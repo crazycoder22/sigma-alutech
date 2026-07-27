@@ -37,8 +37,10 @@ export function LoginForm() {
   return (
     <form onSubmit={submit}>
       {error ? <div className="form-error">{error}</div> : null}
-      <div className="form-field">
-        <label htmlFor="email">Email</label>
+      <div className="field">
+        <label className="field__label" htmlFor="email">
+          <span>Email</span>
+        </label>
         <input
           id="email"
           type="email"
@@ -48,8 +50,10 @@ export function LoginForm() {
           autoComplete="username"
         />
       </div>
-      <div className="form-field">
-        <label htmlFor="password">Password</label>
+      <div className="field">
+        <label className="field__label" htmlFor="password">
+          <span>Password</span>
+        </label>
         <input
           id="password"
           type="password"
