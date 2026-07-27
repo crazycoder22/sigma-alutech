@@ -1,11 +1,15 @@
 # Sigma Alutech — Dynamic Website (Next.js)
 
-The dynamic replacement for the static GitHub Pages site in the repo root.
+The dynamic replacement for the [legacy static site](../docs/legacy-static-site.md)
+in the repository root.
 Product catalog and project portfolio live in **Postgres**; images upload to
 **Vercel Blob** (production) or `public/uploads/` (local dev); a custom
 **admin panel** at `/admin` manages everything with email + password login.
 The admin also runs **payroll**: a monthly salary sheet goes in, payslip PDFs
 come out, and each one is delivered to the employee over WhatsApp.
+
+The repository-level overview and deployment architecture live in the
+[root README](../README.md); this file is the app's own detail.
 
 **Live:** https://sigma-alutech.vercel.app · admin at `/admin`
 **Public domain:** `sigmaalutech.in` still serves the *legacy* static site on

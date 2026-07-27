@@ -1,312 +1,201 @@
-# Sigma Alutech Website
+# Sigma Alutech
 
-> **⚠️ This static site has been superseded.** The dynamic website — Next.js +
-> Neon Postgres + Vercel Blob, with a full admin panel at `/admin` — lives in
-> [`web/`](web/README.md), and its
-> **[deployment architecture is documented there](web/README.md#deployment-architecture)**.
->
-> This root site is still what `sigmaalutech.in` serves, because the domain has
-> not been pointed at Vercel yet. The new site runs at
-> [sigma-alutech.vercel.app](https://sigma-alutech.vercel.app). See
-> [Domain cutover](web/README.md#domain-cutover-not-done-yet) for the switch.
+Aluminium fabrication in Bangalore — formerly Ravi Enterprises, and an
+authorized **Technal** (France) franchisee through Hydro BS India.
 
-## This repository contains two sites
+This repository holds the company's website and the office's payroll tool.
 
-| | Legacy (this folder) | Current (`web/`) |
+| | |
+|---|---|
+| **App** | [`web/`](web/README.md) — Next.js 16, Postgres, Vercel Blob, custom admin, payroll |
+| **Live** | https://sigma-alutech.vercel.app · admin at `/admin` |
+| **Public domain** | `sigmaalutech.in` — still the **legacy** static site, see [Domain cutover](web/README.md#domain-cutover-not-done-yet) |
+| **Legacy site** | repository root (`index.html`, `css/`, `js/`, `data/`) — [documented separately](docs/legacy-static-site.md) |
+
+The app does three jobs: it publishes the product catalog and project
+portfolio, it lets the owner edit both in the browser without touching code,
+and it turns the office's monthly salary spreadsheet into payslip PDFs
+delivered to each employee over WhatsApp.
+
+---
+
+# Deployment architecture
+
+## Topology
+
+```mermaid
+flowchart TB
+  visitor([Visitor])
+  owner([Admin · office])
+  staff([Employee])
+
+  subgraph vercel["Vercel · project sigma-alutech · root directory web/"]
+    edge["Edge network<br/>static assets, JS/CSS bundles"]
+    fn["Next.js server<br/>public pages · /admin · /api · payroll"]
+    edge --> fn
+  end
+
+  visitor --> edge
+  owner --> fn
+
+  fn -->|"SQL over TLS · pooled"| neon[("Neon Postgres · ap-southeast-1<br/>catalog · projects · admins · payroll")]
+  fn -->|"put / del · server-side token"| blob["Vercel Blob · sigma-alutech-blob<br/>photography · payslip PDFs"]
+  visitor -.->|"public URLs, served direct"| blob
+  fn -. "not connected yet" .-> wa["WhatsApp Business Cloud API"]
+  wa -. "payslip PDF" .-> staff
+
+  legacy["GitHub Pages · legacy static site"]
+  visitor -->|"sigmaalutech.in"| legacy
+```
+
+One Vercel deployment serves everything. Public pages are server-rendered per
+request (`dynamic = 'force-dynamic'`), so a catalog edit appears immediately
+without a rebuild. Uploaded images are served **directly from the Blob host**
+to the browser, never proxied through the app.
+
+Two paths exist in code but carry no traffic yet, drawn dashed above:
+
+- **WhatsApp** — `WHATSAPP_PROVIDER` selects the provider. While it is not
+  `meta`, sends are simulated: validated and recorded against each payslip
+  line, delivered to nobody, and the screen says so before you press Send.
+  Going live needs a verified WhatsApp Business account, a business number (a
+  personal number cannot be automated) and an approved message template.
+- **The domain** — `sigmaalutech.in` still resolves to GitHub Pages. Both sites
+  are live on different hostnames from this one repository.
+
+## Managed services
+
+| Service | Instance | Holds |
 |---|---|---|
-| Stack | HTML + CSS + vanilla JS | Next.js 16, TypeScript |
-| Content | JSON files in `data/` | Neon Postgres |
-| Images | committed to `images/` | Vercel Blob, uploaded via the admin |
-| Editing | Decap CMS at `/admin` (needs a GitHub login) | `/admin` with email + password |
-| Hosting | GitHub Pages, auto-deploys on push to `main` | Vercel, auto-deploys on push to `main` |
-| Serves | `sigmaalutech.in` | `sigma-alutech.vercel.app` |
+| **Vercel** | project `sigma-alutech`, root directory `web`, Node 24.x | the app |
+| **Neon Postgres** | `ep-twilight-sea-azrzayre-pooler…ap-southeast-1`, pooled, `sslmode=require` | `categories`, `products`, `project_categories`, `projects`, `admins`, `employees`, `payroll_runs`, `payroll_lines` |
+| **Vercel Blob** | store `sigma-alutech-blob` | uploaded photography, generated payslip PDFs |
+| **GitHub Actions** | `.github/workflows/tests.yml` | CI on every push and PR to `main` |
+| **GitHub Pages** | repository root | the legacy site on `sigmaalutech.in` |
 
-Everything below documents the **legacy** site.
+Blob objects are written `access: 'public'` under `uploads/<folder>/` with
+unguessable keys. Public means *readable by URL*; writing and deleting need the
+server-side token, which never reaches the browser. The Postgres pool is capped
+at one connection per invocation in production — serverless functions are
+short-lived.
 
----
+## Environments
 
-Static website for **Sigma Alutech** (formerly Ravi Enterprises) — an aluminium fabrication company in Bangalore and authorized **Technal** (France) franchisee via Hydro BS India.
+| | Production | Preview | Local |
+|---|---|---|---|
+| Host | Vercel (`sigma-alutech.vercel.app`) | Vercel per-branch/PR URL | `next dev` on :3000 |
+| Database | Neon `neondb` | Neon `neondb` (**same DB**) | Docker `sigma` on :55432 |
+| Images | Vercel Blob | Vercel Blob (same store) | `public/uploads/` |
+| WhatsApp | mock until configured | mock | mock |
+| Trigger | push to `main`, or `vercel deploy --prod` | any other push | manual |
 
-**Tech stack:** Plain HTML + CSS + Vanilla JS — no frameworks, no build tools.
-**Hosting:** GitHub Pages (auto-deploys on push to `main`).
-**Live site:** [https://sigmaalutech.in](https://sigmaalutech.in)
+> **Preview deployments share the production database and blob store.** A
+> preview build can therefore write real content. Until that is separated,
+> treat previews as production for anything that mutates data.
 
----
-
-## Content Management
-
-All content is managed through two JSON files:
-
-| File | Purpose |
-|------|---------|
-| `data/products.json` | Product catalog (6 categories, 15 products) |
-| `data/projects.json` | Client project portfolio (29 projects) |
-
----
-
-## Adding a New Product
-
-### 1. Add the image
-
-Place your product image in the appropriate category folder:
+## Deploy pipeline
 
 ```
-images/products/{category}/{filename}.jpg
+push to main ──┬──▶ GitHub Actions ── legacy Vitest
+               │                    └ web: schema push → JSON migrate → seed →
+               │                         Vitest (60) → Playwright (47)
+               └──▶ Vercel ── npm ci → next build → promote to production
 ```
 
-**Valid categories:** `windows`, `doors`, `sliding`, `facades`, `balustrades`, `handles`
+Three things about this are worth knowing before you rely on it:
 
-**Recommended:** JPG or PNG, at least 800×600px.
+1. **The two run independently.** Vercel does not wait for CI, so a red build
+   can still reach production.
+2. **The git integration can silently skip a push.** On 2026-07-27 two commits
+   deployed within a minute of pushing and the next produced no build at all. A
+   missed deploy is indistinguishable from a successful one from outside, so
+   confirm with `vercel ls sigma-alutech` after pushing, and ship it yourself
+   with `vercel deploy --prod` if nothing new appears.
+3. **Migrations do not run during the build.** Apply schema changes from a
+   workstation *before* deploying code that depends on them:
 
-### 2. Add the JSON entry
+   ```bash
+   cd web
+   DATABASE_URL='<neon-connection-string>' npm run db:push
+   ```
 
-Open `data/products.json` and add a new object inside the relevant category's array. Here's the full schema:
+CI provisions its own throwaway Postgres container, so it never touches Neon.
 
-```json
-{
-  "id": "casement-window-fy65",
-  "name": "FY 65 Casement Window",
-  "series": "FY 65",
-  "topology": "casement",
-  "tagline": "Outward opening window with slim sightlines",
-  "description": "Full product description goes here. 2-3 sentences.",
-  "features": [
-    "Thermally broken profile",
-    "Sound insulation up to 42 dB",
-    "Water tightness Class E1050"
-  ],
-  "specifications": {
-    "Profile Depth": "65mm",
-    "Infill Thickness": "4-28mm",
-    "Max Width": "1400mm",
-    "Max Height": "2400mm"
-  },
-  "finishes": ["Anodized", "Powder Coated", "Wood Finish"],
-  "images": ["images/products/windows/casement-fy65.jpg"],
-  "video": null,
-  "featured": true
-}
+## Environment variables
+
+Set in Vercel → Settings → Environment Variables (Production + Preview). Full
+table, including the WhatsApp group, in
+[`web/README.md`](web/README.md#environment-variables).
+
+| Name | Purpose |
+|---|---|
+| `DATABASE_URL` | all database access |
+| `BLOB_READ_WRITE_TOKEN` | image and payslip upload. **Absent ⇒ the app falls back to the filesystem and uploads fail on Vercel** |
+| `SESSION_SECRET` | signs the admin session cookie; rotating it logs every admin out |
+| `WHATSAPP_*` | payslip delivery; simulated until `WHATSAPP_PROVIDER=meta` |
+
+## Runbook
+
+```bash
+cd web
+
+vercel deploy --prod          # deploy the working tree to production
+vercel ls sigma-alutech       # what is live, and its build status
+vercel logs <deployment-url>  # runtime logs: server errors, DB failures
+vercel promote <older-url>    # roll back to a previous deployment
 ```
 
-### Field reference
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `id` | string | Yes | Unique kebab-case identifier (e.g. `casement-window-fy65`) |
-| `name` | string | Yes | Display name |
-| `series` | string | Yes | Product series (e.g. `"FY 65"`, `"Premium Series"`) |
-| `topology` | string | Yes | Product type — used as a badge on cards (e.g. `casement`, `tilt-turn`, `pivot`, `sliding`) |
-| `tagline` | string | Yes | Short one-line description shown on the product card |
-| `description` | string | Yes | Full description shown in the product detail modal |
-| `features` | string[] | Yes | Bullet-point feature list (4-5 items recommended) |
-| `specifications` | object | Yes | Key-value pairs of technical specs (free-form keys) |
-| `finishes` | string[] | Yes | Available finish options |
-| `images` | string[] | Yes | Array of image paths relative to project root. First image is the main display image |
-| `video` | string or null | Yes | YouTube **embed** URL (see [Videos](#adding-or-updating-videos)) or `null` |
-| `featured` | boolean | Yes | `true` to show on the homepage featured section |
-
 ---
 
-## Adding a New Project
+## Local development
 
-### 1. Create the image folder
+```bash
+# 1. Postgres (once)
+docker run -d --name sigma-pg -e POSTGRES_PASSWORD=sigma -e POSTGRES_USER=sigma \
+  -e POSTGRES_DB=sigma -p 55432:5432 postgres:16-alpine
+docker exec sigma-pg psql -U sigma -c "CREATE DATABASE sigma_test;"
 
-Create a folder for your project using a kebab-case slug:
+# 2. Schema, content and logins
+cd web
+npm install
+npm run db:push
+DATABASE_URL=postgres://sigma:sigma@localhost:55432/sigma_test npx drizzle-kit push
+npm run db:migrate-json
+SEED_ADMIN_EMAIL=admin@sigmaalutech.in SEED_ADMIN_PASSWORD=sigma-admin-2026 npm run db:seed-admin
+npm run db:seed-payroll        # demo staff register (invented data)
 
+# 3. Run
+npm run dev                    # http://localhost:3000, admin at /admin
 ```
-images/projects/{slug}/
-```
-
-Add your images:
-- **Thumbnail** — `thumb.jpg` (or `.png`) — shown on the project card grid
-- **Gallery images** — `01.jpg`, `02.jpg`, etc. — shown in the detail modal and lightbox
-
-**Recommended:** Thumbnails at least 600×450px. Gallery images at least 1200×800px.
-
-### 2. Add the JSON entry
-
-Open `data/projects.json` and add a new object to the array:
-
-```json
-{
-  "id": "my-new-project",
-  "name": "My New Project",
-  "location": "Bangalore, Karnataka",
-  "architect": "XYZ Architects",
-  "year": 2024,
-  "category": "commercial",
-  "type": "Corporate Office",
-  "description": "Project description goes here. 1-3 sentences.",
-  "productsUsed": ["windows", "facades"],
-  "thumbnail": "images/projects/my-new-project/thumb.jpg",
-  "images": [
-    "images/projects/my-new-project/01.jpg",
-    "images/projects/my-new-project/02.jpg",
-    "images/projects/my-new-project/03.jpg"
-  ],
-  "video": null,
-  "featured": false
-}
-```
-
-### Field reference
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `id` | string | Yes | Unique kebab-case identifier, should match the image folder name |
-| `name` | string | Yes | Display name of the project |
-| `location` | string | Yes | City/area (e.g. `"Bidadi, Bangalore"`) |
-| `architect` | string | Yes | Architect or firm name (use `""` if unknown) |
-| `year` | number | Yes | Year of completion (4-digit) |
-| `category` | string | Yes | One of: `hospitality`, `residential`, `commercial`, `institutional`, `industrial` |
-| `type` | string | Yes | Descriptive project type (e.g. `"Luxury Villas - 98 Units"`, `"5-Star Hotel"`) |
-| `description` | string | Yes | Full description shown in the project detail modal |
-| `productsUsed` | string[] | Yes | Product category IDs used in the project (e.g. `["windows", "facades"]`) |
-| `thumbnail` | string | Yes | Path to thumbnail image for the project card |
-| `images` | string[] | Yes | Array of gallery image paths for the detail modal lightbox |
-| `video` | string or null | No | YouTube **embed** URL or `null` |
-| `featured` | boolean | Yes | `true` to show on the homepage |
-
----
-
-## Updating Images
-
-### For a product
-
-1. Drop the new image into `images/products/{category}/`
-2. Open `data/products.json`, find the product entry
-3. Update the `images` array with the new filename:
-   ```json
-   "images": ["images/products/windows/my-new-image.jpg"]
-   ```
-
-### For a project
-
-1. Drop the new image(s) into `images/projects/{slug}/`
-2. Open `data/projects.json`, find the project entry
-3. Update `thumbnail` and/or `images` array:
-   ```json
-   "thumbnail": "images/projects/my-project/thumb.jpg",
-   "images": [
-     "images/projects/my-project/01.jpg",
-     "images/projects/my-project/02.jpg"
-   ]
-   ```
-
-> **Tip:** You can add multiple images to the `images` array — they will appear as a gallery with thumbnail navigation in the detail modal, and users can click to open a full-screen lightbox.
-
----
-
-## Adding or Updating Videos
-
-Videos are embedded from YouTube. To add a video:
-
-1. Get the YouTube video URL, e.g. `https://www.youtube.com/watch?v=tu9WlspEjo0`
-2. Convert it to **embed** format by replacing `watch?v=` with `embed/`:
-   ```
-   https://www.youtube.com/embed/tu9WlspEjo0
-   ```
-3. Set the `video` field in the JSON:
-   ```json
-   "video": "https://www.youtube.com/embed/tu9WlspEjo0"
-   ```
-4. To remove a video, set the field to `null`:
-   ```json
-   "video": null
-   ```
-
-The video will appear at the bottom of the product/project detail modal.
-
----
-
-## Theme (Light / Dark)
-
-The site ships with a **light theme by default** and a dark/light toggle button in the navigation bar (moon/sun icon). The visitor's choice is saved in their browser (`localStorage` key `sigma-theme`) and persists across pages and visits.
-
-For developers:
-- All colors are design tokens in `css/variables.css`. `:root` holds the light palette; `:root[data-theme="dark"]` holds the dark overrides.
-- Text that sits on photos (hero, project/category cards) uses fixed `--text-on-image` tokens so it stays readable in both themes.
-- `js/theme.js` sets the `data-theme` attribute before first paint and wires up any button with a `data-theme-toggle` attribute.
-
----
-
-## Editing Content in the Browser (Decap CMS)
-
-The site includes [Decap CMS](https://decapcms.org) at **`/admin/`** — a friendly editor for `data/products.json` and `data/projects.json` with image uploads (saved to `images/uploads/`). Every save is a commit to this repo, so the site redeploys automatically.
-
-**One-time setup before login works on the live site** (needs ~15 minutes, done once):
-
-1. Deploy the free OAuth gateway [sveltia-cms-auth](https://github.com/sveltia/sveltia-cms-auth) to Cloudflare Workers (button in its README).
-2. Create a GitHub OAuth App (Settings → Developer settings → OAuth Apps) with the callback URL shown in the sveltia-cms-auth README, and give the worker its client ID/secret.
-3. In `admin/config.yml`, uncomment `base_url:` and set it to your worker URL.
-
-**Local testing without OAuth:** run `npx decap-server` in the repo root alongside `python3 -m http.server 8080`, then open `http://localhost:8080/admin/`.
-
----
 
 ## Tests
 
-Requires Node.js (`npm install` once).
-
-| Command | What it runs |
-|---------|--------------|
-| `npm test` | Unit tests (theme logic) + integration tests (JSON schema validity, image files exist, CSS token consistency, CMS config sanity) |
-| `npm run test:e2e` | Playwright browser tests (theme default/toggle/persistence, catalog rendering, filters, modals, admin page) — run `npx playwright install chromium` once first |
-| `npm run test:all` | Everything |
-
----
-
-## Local Development
-
-To preview the site locally:
-
 ```bash
-cd /path/to/sigma-alutech
-python3 -m http.server 8080
+cd web
+npm test          # Vitest: unit + integration against the docker Postgres
+npm run test:e2e  # Playwright: full user flows, desktop and phone
+npm run test:all
 ```
 
-Then open [http://localhost:8080](http://localhost:8080) in your browser.
+`npm test` in the repository *root* is a different suite — it covers the legacy
+static site, and CI runs both.
 
-> **Note:** You must use a local server (not just open the HTML file directly) because the site fetches JSON data via `fetch()`, which requires HTTP.
+Real salary data is **never** committed; this repository is public. The payroll
+tests run against an invented eight-person fixture, and the formula was
+reconciled against a real month's sheet locally before anything was committed.
 
----
-
-## Deploying Changes
-
-After making changes, push to GitHub and the site will auto-deploy:
-
-```bash
-git add .
-git commit -m "Add new product/project"
-git push
-```
-
-GitHub Pages will rebuild automatically within 1-2 minutes.
-
----
-
-## Folder Structure
+## Where things live
 
 ```
 sigma-alutech/
-├── index.html              # Homepage
-├── products.html           # Product catalog page
-├── projects.html           # Project showcase page
-├── data/
-│   ├── products.json       # Product data (edit this to manage products)
-│   └── projects.json       # Project data (edit this to manage projects)
-├── css/
-│   ├── variables.css       # Design tokens (colors, fonts, spacing)
-│   ├── base.css            # Reset & typography
-│   ├── layout.css          # Grid & layout utilities
-│   ├── components.css      # UI components (nav, cards, modals)
-│   └── pages.css           # Page-specific styles
-├── js/
-│   ├── main.js             # Core JS (nav, hero slider, scroll animations)
-│   ├── products.js         # Product catalog logic
-│   └── projects.js         # Project showcase logic
-└── images/
-    ├── hero/               # Homepage hero slider images
-    ├── products/{category}/ # Product images by category
-    └── projects/{slug}/     # Project images by project
+├── web/                    # the app — see web/README.md
+│   ├── src/app/            # routes: public pages, /admin, /api
+│   ├── src/components/     # public and admin components
+│   ├── src/lib/payroll/    # calc, sheet import, PDF, WhatsApp, store
+│   ├── src/db/schema.ts    # Drizzle schema
+│   └── tests/              # unit, integration, e2e
+├── docs/
+│   └── legacy-static-site.md
+├── .github/workflows/      # CI
+└── index.html, css/, js/, data/, images/    # legacy static site
 ```
