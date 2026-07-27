@@ -92,6 +92,29 @@ export async function getRunByPeriod(period: string): Promise<PayrollRun | null>
   return row ?? null;
 }
 
+/**
+ * Net paid per employee in the month before `period`, keyed by name.
+ * Used to flag a line whose pay has moved sharply — with only the
+ * monthly figures on screen, a mistyped gross is otherwise invisible.
+ */
+export async function previousNetByName(
+  period: string
+): Promise<Record<string, number>> {
+  const [y, m] = period.slice(0, 7).split('-').map(Number);
+  if (!y || !m) return {};
+  const prev = new Date(Date.UTC(y, m - 2, 1));
+  const key = `${prev.getUTCFullYear()}-${String(prev.getUTCMonth() + 1).padStart(2, '0')}-01`;
+
+  const run = await getRunByPeriod(key);
+  if (!run) return {};
+  const db = getDb();
+  const lines = await db
+    .select({ name: payrollLines.employeeName, netPaid: payrollLines.netPaid })
+    .from(payrollLines)
+    .where(eq(payrollLines.runId, run.id));
+  return Object.fromEntries(lines.map((l) => [l.name, l.netPaid]));
+}
+
 export async function createRun(
   period: string,
   daysInPeriod: number

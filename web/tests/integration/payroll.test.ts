@@ -187,4 +187,17 @@ describe('payroll runs', () => {
     expect(line.otAmount).toBe(193548);
     expect(line.netPaid).toBeLessThan(toPaise(29246)); // fewer rupees per day
   });
+
+  it("reads last month's net so a sharp move can be flagged", async () => {
+    const may = await store.createRun('2028-05-01', 31);
+    await store.replaceLines(may.id, 31, [lineFor(null)]);
+
+    const previous = await store.previousNetByName('2028-06-01');
+    expect(previous['TEST PERSON']).toBeGreaterThan(0);
+
+    // Nothing in the month before this one, so nothing to compare against.
+    expect(await store.previousNetByName('2028-05-01')).toEqual({});
+    // January looks back to December of the year before.
+    expect(await store.previousNetByName('2028-01-01')).toEqual({});
+  });
 });

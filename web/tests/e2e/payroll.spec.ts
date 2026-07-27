@@ -93,21 +93,35 @@ test.describe('Payroll', () => {
     // Net recalculates live: 30000 gross over 30 days, 30 worked, +1200 bus pass
     await expect(page.getByTestId('net-0')).toHaveText('31,200.00');
 
-    // The sheet's derived columns are on screen, not just the inputs.
-    await expect(page.getByTestId('perday-0')).toHaveText('1,000.00');
-    await expect(page.getByTestId('earned-0')).toHaveText('30,000.00');
-    // Row 3 works 34 OT hours at 23000/30/8.5 = 90.196 an hour.
-    await expect(page.getByTestId('otamt-3')).toHaveText('3,066.67');
-    await expect(page.getByTestId('total-3')).toHaveText('28,816.67');
-    // Advance is editable and its balance is derived: 2000 pending - 1000 taken.
+    // The grid carries only what changes month to month; the rest of the
+    // line opens underneath, with the arithmetic spelled out.
+    await expect(page.getByTestId('gross-0')).toBeHidden();
+    await page.getByTestId('expand-3').click();
+    const detail = page.getByTestId('detail-3');
+    await expect(detail).toContainText('How this was worked out');
+    // 23000 over 30 days, 30 worked, 34 OT hrs at 766.67/8.5 an hour.
+    await expect(detail).toContainText('23,000.00 ÷ 30 days');
+    await expect(detail).toContainText('OT 34 hrs ÷ 8.5');
+    await expect(page.getByTestId('earnings-3')).toHaveText('30,016.67');
+    // Advance is editable there too: 2000 pending less 1000 taken.
     await expect(page.getByTestId('advpending-3')).toHaveValue('2000');
     await expect(page.getByTestId('advbal-3')).toHaveText('1,000.00');
+    await page.getByTestId('expand-3').click();
+    await expect(page.getByTestId('detail-3')).toHaveCount(0);
+
+    // The full sheet view is one toggle away, for reconciling at month end.
+    await page.getByTestId('toggle-workings').click();
+    await expect(page.getByTestId('perday-0')).toHaveText('1,000.00');
+    await expect(page.getByTestId('earned-0')).toHaveText('30,000.00');
+    await expect(page.getByTestId('otamt-3')).toHaveText('3,066.67');
+    await expect(page.getByTestId('total-3')).toHaveText('28,816.67');
+    await page.getByTestId('toggle-workings').click();
+    await expect(page.getByTestId('perday-0')).toHaveCount(0);
 
     // ---- edit a cell and watch the total move ----
     const before = await page.getByTestId('total-net').innerText();
     await page.getByTestId('days-0').fill('15');
     await expect(page.getByTestId('net-0')).toHaveText('16,200.00'); // 15000 + 1200
-    await expect(page.getByTestId('earned-0')).toHaveText('15,000.00');
     await expect(page.getByTestId('total-net')).not.toHaveText(before);
     await page.getByTestId('days-0').fill('30');
     await expect(page.getByTestId('net-0')).toHaveText('31,200.00');

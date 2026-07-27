@@ -1,6 +1,6 @@
 import { redirect, notFound } from 'next/navigation';
 import { getSession } from '@/lib/auth';
-import { getRun } from '@/lib/payroll/store';
+import { getRun, previousNetByName } from '@/lib/payroll/store';
 import { parseId } from '@/lib/api-helpers';
 import { isLiveProvider } from '@/lib/payroll/whatsapp';
 import { PayrollRunEditor } from '@/components/admin/PayrollRunEditor';
@@ -20,5 +20,13 @@ export default async function AdminPayrollRunPage({
   const run = await getRun(id);
   if (!run) notFound();
 
-  return <PayrollRunEditor run={run} whatsappLive={isLiveProvider()} />;
+  const previousNet = await previousNetByName(run.period);
+
+  return (
+    <PayrollRunEditor
+      run={run}
+      previousNet={previousNet}
+      whatsappLive={isLiveProvider()}
+    />
+  );
 }
