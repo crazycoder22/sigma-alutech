@@ -93,30 +93,29 @@ test.describe('Payroll', () => {
     // Net recalculates live: 30000 gross over 30 days, 30 worked, +1200 bus pass
     await expect(page.getByTestId('net-0')).toHaveText('31,200.00');
 
-    // The grid carries only what changes month to month; the rest of the
-    // line opens underneath, with the arithmetic spelled out.
-    await expect(page.getByTestId('gross-0')).toBeHidden();
+    // Every editable figure is in the grid; the computed ones open below.
+    await expect(page.getByTestId('gross-0')).toHaveValue('30000');
+    await expect(page.getByTestId('perday-0')).toHaveCount(0);
+
     await page.getByTestId('expand-3').click();
     const detail = page.getByTestId('detail-3');
-    await expect(detail).toContainText('How this was worked out');
     // 23000 over 30 days, 30 worked, 34 OT hrs at 766.67/8.5 an hour.
-    await expect(detail).toContainText('23,000.00 ÷ 30 days');
-    await expect(detail).toContainText('OT 34 hrs ÷ 8.5');
+    await expect(page.getByTestId('perday-3')).toHaveText('766.67');
+    await expect(page.getByTestId('earned-3')).toHaveText('23,000.00');
+    await expect(detail).toContainText('OT amount · 34 hrs ÷ 8.5');
+    await expect(page.getByTestId('otamt-3')).toHaveText('3,066.67');
     await expect(page.getByTestId('earnings-3')).toHaveText('30,016.67');
-    // Advance is editable there too: 2000 pending less 1000 taken.
+    // Advance pending has no column, so it is editable here: 2000 less 1000.
     await expect(page.getByTestId('advpending-3')).toHaveValue('2000');
     await expect(page.getByTestId('advbal-3')).toHaveText('1,000.00');
+
+    // Rows open independently — several can stay open at once.
+    await page.getByTestId('expand-0').click();
+    await expect(page.getByTestId('detail-0')).toBeVisible();
+    await expect(page.getByTestId('detail-3')).toBeVisible();
     await page.getByTestId('expand-3').click();
     await expect(page.getByTestId('detail-3')).toHaveCount(0);
-
-    // The full sheet view is one toggle away, for reconciling at month end.
-    await page.getByTestId('toggle-workings').click();
-    await expect(page.getByTestId('perday-0')).toHaveText('1,000.00');
-    await expect(page.getByTestId('earned-0')).toHaveText('30,000.00');
-    await expect(page.getByTestId('otamt-3')).toHaveText('3,066.67');
-    await expect(page.getByTestId('total-3')).toHaveText('28,816.67');
-    await page.getByTestId('toggle-workings').click();
-    await expect(page.getByTestId('perday-0')).toHaveCount(0);
+    await expect(page.getByTestId('detail-0')).toBeVisible();
 
     // ---- edit a cell and watch the total move ----
     const before = await page.getByTestId('total-net').innerText();

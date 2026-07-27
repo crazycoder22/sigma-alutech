@@ -1479,7 +1479,9 @@
   width: 100%;
   border-collapse: collapse;
   font-size: var(--fs-small);
-  min-width: 1000px;
+  /* Name + nine inputs + net + details. Below this the browser starts
+     crushing columns instead of scrolling. */
+  min-width: 1300px;
 }
 
 .pay-grid th {
@@ -1544,7 +1546,8 @@
   background: var(--bg-secondary);
   white-space: nowrap;
   position: sticky;
-  right: 0;
+  /* Sits just left of the Details column, which is pinned to the edge. */
+  right: 108px;
   z-index: 2;
   border-left: 1px solid var(--border);
   min-width: 104px;
@@ -2278,17 +2281,7 @@
   }
 }
 
-/* ---- Calculated cells: the sheet's own derived columns, shown but
-   not editable, so the arithmetic can be checked in place. ---- */
-.pay-grid__calc,
-.pay-grid th.pay-grid__calc {
-  background: var(--bg-primary);
-  color: var(--text-secondary);
-  white-space: nowrap;
-  font-variant-numeric: tabular-nums;
-}
-
-.pay-grid th.pay-grid__calc {
+.grid-legend span {
   color: var(--gold);
 }
 
@@ -2332,51 +2325,46 @@
 }
 
 /* ============================================================
-   Compact pay grid: the four figures that change every month,
-   with the rest of the line opened underneath on demand.
+   Details row: the computed breakdown, opened under a line
    ============================================================ */
-.pay-grid--compact {
-  min-width: 780px;
-}
-
-.pay-grid--compact .grid-input {
-  width: 96px;
-}
-
 .pay-grid__chev,
 .pay-grid th.pay-grid__chev {
-  width: 42px;
+  width: 108px;
   padding-left: 0;
-  padding-right: 4px;
+  position: sticky;
+  right: 0;
+  z-index: 2;
+  background: var(--bg-surface);
+}
+
+.pay-grid th.pay-grid__chev {
+  background: var(--bg-primary);
+  z-index: 3;
 }
 
 .pay-grid__toggle {
   background: none;
   border: 1px solid transparent;
   cursor: pointer;
-  font-size: 0.875rem;
-  line-height: 1;
+  font-family: inherit;
+  font-size: var(--fs-micro);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
   padding: 8px 10px;
-  color: var(--text-muted);
-  transition: color var(--transition-fast), border-color var(--transition-fast);
+  color: var(--gold);
+  transition: border-color var(--transition-fast);
 }
 
 .pay-grid__toggle:hover {
-  color: var(--gold);
-  border-color: var(--border);
+  border-color: var(--gold);
 }
 
-.pay-grid--compact tr.is-open td {
+.pay-grid tr.is-open td {
   border-bottom-color: transparent;
-  background: var(--bg-secondary);
 }
 
-.pay-grid--compact tr.is-open .pay-grid__net {
-  background: var(--gold-subtle);
-}
-
-/* A line whose pay has moved sharply since last month. With only the
-   monthly figures on screen, a mistyped gross is otherwise invisible. */
+/* A line whose pay has moved sharply since last month. */
 .pay-grid__swing {
   margin-left: 6px;
   font-size: 0.625rem;
@@ -2386,98 +2374,51 @@
 
 .pay-detail-row td {
   padding: 0 !important;
-  background: var(--bg-secondary);
-  border-bottom: 1px solid var(--border-strong) !important;
+  border-bottom: 1px solid var(--border) !important;
 }
 
 .pay-detail {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
   gap: 28px;
-  padding: 18px 20px 22px;
+  padding: 16px 20px 18px;
+  padding-left: 212px;
+  background: var(--bg-primary);
   text-align: left;
+}
+
+.pay-detail__figure {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
 }
 
 .pay-detail__label {
   font-size: var(--fs-micro);
-  letter-spacing: var(--ls-wider);
+  letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--text-muted);
-  margin-bottom: 10px;
-}
-
-.pay-detail__field {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 4px 0;
-  font-size: var(--fs-small);
-  font-weight: var(--fw-light);
-  color: var(--text-secondary);
-}
-
-.pay-detail__derived {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  margin-top: 8px;
-  padding-top: 10px;
-  border-top: 1px solid var(--border);
-  font-size: var(--fs-small);
-  font-weight: var(--fw-light);
-  color: var(--text-secondary);
-}
-
-.pay-detail__derived span:last-child {
-  color: var(--text-primary);
-  font-variant-numeric: tabular-nums;
-}
-
-.pay-detail__col--workings {
-  background: var(--bg-surface);
-  border: 1px solid var(--border);
-  padding: 14px 16px;
-}
-
-.pay-detail__step {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 4px 0;
-  font-size: var(--fs-small);
-  font-weight: var(--fw-light);
-  color: var(--text-secondary);
-}
-
-.pay-detail__step span:last-child {
-  color: var(--text-primary);
-  font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
-.pay-detail__step--rule {
-  margin-top: 6px;
-  padding-top: 10px;
-  border-top: 1px solid var(--border);
+.pay-detail__value {
+  font-size: var(--fs-small);
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
 }
 
-.pay-detail__step--net {
-  margin-top: 6px;
-  padding-top: 10px;
-  border-top: 1px solid var(--border-strong);
+.pay-detail__value--strong {
   font-weight: var(--fw-medium);
   color: var(--text-primary);
 }
 
-.pay-detail__swing {
-  margin-top: 10px;
-  font-size: var(--fs-micro);
-  line-height: var(--lh-normal);
-  color: var(--gold-hover);
+.pay-detail__figure--input .grid-input {
+  width: 96px;
 }
 
-.workings-toggle.is-on {
-  border-color: var(--gold);
-  color: var(--gold);
+.pay-detail__swing {
+  align-self: center;
+  font-size: var(--fs-micro);
+  color: var(--gold-hover);
 }

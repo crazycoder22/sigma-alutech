@@ -168,8 +168,16 @@ export function PayrollRunEditor({ run, previousNet, whatsappLive }: Props) {
   const [success, setSuccess] = useState('');
   const [notices, setNotices] = useState<string[]>([]);
   const [sheet, setSheet] = useState<Sheet>(null);
-  const [expanded, setExpanded] = useState<number | null>(null);
-  const [showWorkings, setShowWorkings] = useState(false);
+  // Several rows can stay open at once, for comparing people side by side.
+  const [expanded, setExpanded] = useState<ReadonlySet<number>>(new Set());
+
+  function toggleRow(i: number) {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (!next.delete(i)) next.add(i);
+      return next;
+    });
+  }
 
   const dirty = JSON.stringify(rows) !== baseline;
   const generated = rows.filter((r) => r.pdfUrl).length;
@@ -415,123 +423,71 @@ export function PayrollRunEditor({ run, previousNet, whatsappLive }: Props) {
     return <span className="chip-idle">{r.pdfUrl ? 'Ready' : '—'}</span>;
   };
 
-  /* ---------------- the arithmetic, spelled out ----------------
-     Each line is the step the office sheet takes, so the figures can be
-     checked without reverse-engineering them. Reconciles exactly:
-     total earnings - deductions = net paid. */
-  function workingRows(index: number) {
-    const r = rows[index];
-    const d = derived[index];
-    const allowances = r.attendanceBonus + r.busPass + r.annualBonus;
-    const out: Array<[string, string]> = [
-      [`${formatRupees(r.grossSalary)} ÷ ${days} days`, formatRupees(d.salaryPerDay)],
-      [`× ${r.daysWorked} days worked`, formatRupees(d.earnedSalary)],
-    ];
-    if (r.otHours) {
-      out.push([
-        `OT ${r.otHours} hrs ÷ ${HOURS_PER_DAY} × ${formatRupees(d.salaryPerDay)}`,
-        formatRupees(d.otAmount),
-      ]);
-    }
-    if (r.outsidePay) out.push(['+ outside pay', formatRupees(r.outsidePay)]);
-    if (allowances) out.push(['+ allowances', formatRupees(allowances)]);
-    return out;
-  }
-
-  /** Everything not in the compact grid, opened under the row. */
+  /* ---------------- the computed breakdown ----------------
+     Everything the sheet works out from the row above, plus the two
+     inputs the grid has no column for. */
   function detailPanel(index: number) {
     const r = rows[index];
     const d = derived[index];
     return (
       <div className="pay-detail" data-testid={`detail-${index}`}>
-        <div className="pay-detail__col">
-          <div className="pay-detail__label">Earnings</div>
-          <label className="pay-detail__field">
-            <span>Monthly gross</span>
-            <Money
-              value={r.grossSalary}
-              onChange={(v) => patch(index, { grossSalary: v })}
-              testId={`gross-${index}`}
-            />
-          </label>
-          <label className="pay-detail__field">
-            <span>Attendance bonus</span>
-            <Money
-              value={r.attendanceBonus}
-              onChange={(v) => patch(index, { attendanceBonus: v })}
-            />
-          </label>
-          <label className="pay-detail__field">
-            <span>Bus pass</span>
-            <Money value={r.busPass} onChange={(v) => patch(index, { busPass: v })} />
-          </label>
-          <label className="pay-detail__field">
-            <span>Annual bonus</span>
-            <Money
-              value={r.annualBonus}
-              onChange={(v) => patch(index, { annualBonus: v })}
-            />
-          </label>
-        </div>
+        <span className="pay-detail__figure">
+          <span className="pay-detail__label">Sal / day</span>
+          <span className="pay-detail__value" data-testid={`perday-${index}`}>
+            {formatRupees(d.salaryPerDay)}
+          </span>
+        </span>
+        <span className="pay-detail__figure">
+          <span className="pay-detail__label">Earned salary</span>
+          <span className="pay-detail__value" data-testid={`earned-${index}`}>
+            {formatRupees(d.earnedSalary)}
+          </span>
+        </span>
+        <span className="pay-detail__figure">
+          <span className="pay-detail__label">
+            OT amount · {r.otHours} hrs ÷ {HOURS_PER_DAY}
+          </span>
+          <span className="pay-detail__value" data-testid={`otamt-${index}`}>
+            {formatRupees(d.otAmount)}
+          </span>
+        </span>
+        <span className="pay-detail__figure">
+          <span className="pay-detail__label">Total earnings</span>
+          <span
+            className="pay-detail__value pay-detail__value--strong"
+            data-testid={`earnings-${index}`}
+          >
+            {formatRupees(sumEarnings(r, d))}
+          </span>
+        </span>
+        <span className="pay-detail__figure">
+          <span className="pay-detail__label">Advance balance</span>
+          <span className="pay-detail__value" data-testid={`advbal-${index}`}>
+            {formatRupees(d.balanceAdvance)}
+          </span>
+        </span>
 
-        <div className="pay-detail__col">
-          <div className="pay-detail__label">Deductions</div>
-          <label className="pay-detail__field">
-            <span>Advance pending</span>
-            <Money
-              value={r.advancePending}
-              onChange={(v) => patch(index, { advancePending: v })}
-              testId={`advpending-${index}`}
-            />
-          </label>
-          <label className="pay-detail__field">
-            <span>PF contribution</span>
-            <Money
-              value={r.pfContribution}
-              onChange={(v) => patch(index, { pfContribution: v })}
-            />
-          </label>
-          <label className="pay-detail__field">
-            <span>Phone bill</span>
-            <Money
-              value={r.phoneDeduction}
-              onChange={(v) => patch(index, { phoneDeduction: v })}
-            />
-          </label>
-          <div className="pay-detail__derived">
-            <span>Balance advance</span>
-            <span data-testid={`advbal-${index}`}>{formatRupees(d.balanceAdvance)}</span>
-          </div>
-        </div>
+        <label className="pay-detail__figure pay-detail__figure--input">
+          <span className="pay-detail__label">Adv. pending</span>
+          <Money
+            value={r.advancePending}
+            onChange={(v) => patch(index, { advancePending: v })}
+            testId={`advpending-${index}`}
+          />
+        </label>
+        <label className="pay-detail__figure pay-detail__figure--input">
+          <span className="pay-detail__label">Annual bonus</span>
+          <Money
+            value={r.annualBonus}
+            onChange={(v) => patch(index, { annualBonus: v })}
+          />
+        </label>
 
-        <div className="pay-detail__col pay-detail__col--workings">
-          <div className="pay-detail__label">How this was worked out</div>
-          {workingRows(index).map(([text, amount]) => (
-            <div className="pay-detail__step" key={text}>
-              <span>{text}</span>
-              <span>{amount}</span>
-            </div>
-          ))}
-          <div className="pay-detail__step pay-detail__step--rule">
-            <span>Total earnings</span>
-            <span data-testid={`earnings-${index}`}>{formatRupees(sumEarnings(r, d))}</span>
-          </div>
-          {sumDeductions(r) ? (
-            <div className="pay-detail__step">
-              <span>− deductions</span>
-              <span>{formatRupees(sumDeductions(r))}</span>
-            </div>
-          ) : null}
-          <div className="pay-detail__step pay-detail__step--net">
-            <span>Net paid</span>
-            <span>{formatRupees(d.netPaid)}</span>
-          </div>
-          {swings[index] ? (
-            <p className="pay-detail__swing">
-              {swings[index]} against {previousLabel}. Worth checking the figures.
-            </p>
-          ) : null}
-        </div>
+        {swings[index] ? (
+          <span className="pay-detail__swing">
+            {swings[index]} against {previousLabel} — worth checking.
+          </span>
+        ) : null}
       </div>
     );
   }
@@ -897,16 +853,6 @@ export function PayrollRunEditor({ run, previousNet, whatsappLive }: Props) {
             Download all
           </a>
           <button
-            className={`btn btn--quiet btn--small workings-toggle${
-              showWorkings ? ' is-on' : ''
-            }`}
-            onClick={() => setShowWorkings((v) => !v)}
-            aria-pressed={showWorkings}
-            data-testid="toggle-workings"
-          >
-            {showWorkings ? 'Hide workings' : 'Show workings'}
-          </button>
-          <button
             className="btn btn--primary btn--small"
             onClick={() => send()}
             disabled={Boolean(busy) || generated === 0}
@@ -1047,44 +993,55 @@ export function PayrollRunEditor({ run, previousNet, whatsappLive }: Props) {
               ))}
             </div>
 
-            {showWorkings ? (
-              <>
-                <p className="grid-legend">
-                  Every column the office sheet carries, in its order. Shaded
-                  columns are calculated. Use this to reconcile against the sheet;
-                  turn it off for day-to-day entry.
-                </p>
-                <div className="grid-scroll">
-                <table className="pay-grid">
-                  <thead>
-                    <tr>
-                      <th className="pay-grid__name">Name</th>
-                      <th>Days worked</th>
-                      <th>Gross</th>
-                      <th className="pay-grid__calc">Sal / day</th>
-                      <th className="pay-grid__calc">Earned salary</th>
-                      <th>OT hrs</th>
-                      <th className="pay-grid__calc">OT amount</th>
-                      <th>Outside pay</th>
-                      <th className="pay-grid__calc">Total earnings</th>
-                      <th>Adv. pending</th>
-                      <th>Adv. deducted</th>
-                      <th className="pay-grid__calc">Balance adv.</th>
-                      <th>Att. bonus</th>
-                      <th>Phone ded.</th>
-                      <th>PF</th>
-                      <th>Bus pass</th>
-                      <th>Annual bonus</th>
-                      <th className="pay-grid__net">Net paid</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rows.map((r, i) => (
-                      <tr key={r.id ?? `new-${i}`} data-testid={`pay-row-${i}`}>
+            {/* Every editable figure stays in the grid; each row's Details
+                opens the computed breakdown underneath it. */}
+            <p className="grid-legend">
+              Editable inputs only. Open a row&rsquo;s <span>Details</span> to see the
+              computed breakdown — sal/day, earned salary, OT amount, total earnings
+              and advance balance. Overtime is priced at {HOURS_PER_DAY} hours to the day.
+            </p>
+            <div className="grid-scroll">
+              <table className="pay-grid">
+                <thead>
+                  <tr>
+                    <th className="pay-grid__name">Name</th>
+                    <th>Days</th>
+                    <th>Gross</th>
+                    <th>OT hrs</th>
+                    <th>Outside</th>
+                    <th>Att. bonus</th>
+                    <th>Bus pass</th>
+                    <th>Adv. ded.</th>
+                    <th>PF</th>
+                    <th>Phone ded.</th>
+                    <th className="pay-grid__net">Net paid</th>
+                    <th className="pay-grid__chev" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((r, i) => (
+                    <Fragment key={r.id ?? `new-${i}`}>
+                      <tr
+                        data-testid={`pay-row-${i}`}
+                        className={expanded.has(i) ? 'is-open' : undefined}
+                      >
                         <td className="pay-grid__name">
-                          <div className="pay-grid__person">{r.employeeName}</div>
+                          <div className="pay-grid__person">
+                            {r.employeeName}
+                            {swings[i] ? (
+                              <span
+                                className="pay-grid__swing"
+                                data-testid={`swing-${i}`}
+                                title={`Net paid moved ${swings[i]} from ${previousLabel}. Open Details and check the figures.`}
+                              >
+                                ●
+                              </span>
+                            ) : null}
+                          </div>
                           <div className="pay-grid__phone">
-                            {r.phone || <span style={{ color: 'var(--danger)' }}>no phone</span>}
+                            {r.phone || (
+                              <span style={{ color: 'var(--danger)' }}>no phone</span>
+                            )}
                           </div>
                         </td>
                         <td>
@@ -1102,12 +1059,6 @@ export function PayrollRunEditor({ run, previousNet, whatsappLive }: Props) {
                             testId={`gross-${i}`}
                           />
                         </td>
-                        <td className="pay-grid__calc" data-testid={`perday-${i}`}>
-                          {formatRupees(derived[i].salaryPerDay)}
-                        </td>
-                        <td className="pay-grid__calc" data-testid={`earned-${i}`}>
-                          {formatRupees(derived[i].earnedSalary)}
-                        </td>
                         <td>
                           <Num
                             value={r.otHours}
@@ -1115,30 +1066,11 @@ export function PayrollRunEditor({ run, previousNet, whatsappLive }: Props) {
                             testId={`ot-${i}`}
                           />
                         </td>
-                        <td className="pay-grid__calc" data-testid={`otamt-${i}`}>
-                          {formatRupees(derived[i].otAmount)}
-                        </td>
-                        <td>
-                          <Money value={r.outsidePay} onChange={(v) => patch(i, { outsidePay: v })} />
-                        </td>
-                        <td className="pay-grid__calc" data-testid={`total-${i}`}>
-                          {formatRupees(derived[i].totalEarnings)}
-                        </td>
                         <td>
                           <Money
-                            value={r.advancePending}
-                            onChange={(v) => patch(i, { advancePending: v })}
-                            testId={`advpending-${i}`}
+                            value={r.outsidePay}
+                            onChange={(v) => patch(i, { outsidePay: v })}
                           />
-                        </td>
-                        <td>
-                          <Money
-                            value={r.advanceDeducted}
-                            onChange={(v) => patch(i, { advanceDeducted: v })}
-                          />
-                        </td>
-                        <td className="pay-grid__calc" data-testid={`advbal-${i}`}>
-                          {formatRupees(derived[i].balanceAdvance)}
                         </td>
                         <td>
                           <Money
@@ -1147,9 +1079,12 @@ export function PayrollRunEditor({ run, previousNet, whatsappLive }: Props) {
                           />
                         </td>
                         <td>
+                          <Money value={r.busPass} onChange={(v) => patch(i, { busPass: v })} />
+                        </td>
+                        <td>
                           <Money
-                            value={r.phoneDeduction}
-                            onChange={(v) => patch(i, { phoneDeduction: v })}
+                            value={r.advanceDeducted}
+                            onChange={(v) => patch(i, { advanceDeducted: v })}
                           />
                         </td>
                         <td>
@@ -1159,15 +1094,11 @@ export function PayrollRunEditor({ run, previousNet, whatsappLive }: Props) {
                           />
                         </td>
                         <td>
-                          <Money value={r.busPass} onChange={(v) => patch(i, { busPass: v })} />
-                        </td>
-                        <td>
                           <Money
-                            value={r.annualBonus}
-                            onChange={(v) => patch(i, { annualBonus: v })}
+                            value={r.phoneDeduction}
+                            onChange={(v) => patch(i, { phoneDeduction: v })}
                           />
                         </td>
-                        {/* The number that matters, with its delivery state under it. */}
                         <td className="pay-grid__net">
                           <span className="pay-grid__netvalue" data-testid={`net-${i}`}>
                             {formatRupees(derived[i].netPaid)}
@@ -1182,116 +1113,28 @@ export function PayrollRunEditor({ run, previousNet, whatsappLive }: Props) {
                             )}
                           </span>
                         </td>
+                        <td className="pay-grid__chev">
+                          <button
+                            className="pay-grid__toggle"
+                            onClick={() => toggleRow(i)}
+                            aria-expanded={expanded.has(i)}
+                            data-testid={`expand-${i}`}
+                          >
+                            Details {expanded.has(i) ? '▴' : '▾'}
+                          </button>
+                        </td>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              </>
-            ) : (
-              <div className="grid-scroll grid-scroll--compact">
-                <table className="pay-grid pay-grid--compact">
-                  <thead>
-                    <tr>
-                      <th className="pay-grid__name">Name</th>
-                      <th>Days worked</th>
-                      <th>OT hrs</th>
-                      <th>Outside pay</th>
-                      <th>Adv. deducted</th>
-                      <th className="pay-grid__net">Net paid</th>
-                      <th className="pay-grid__chev" />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rows.map((r, i) => (
-                      <Fragment key={r.id ?? `new-${i}`}>
-                        <tr
-                          data-testid={`pay-row-${i}`}
-                          className={expanded === i ? 'is-open' : undefined}
-                        >
-                          <td className="pay-grid__name">
-                            <div className="pay-grid__person">
-                              {r.employeeName}
-                              {swings[i] ? (
-                                <span
-                                  className="pay-grid__swing"
-                                  data-testid={`swing-${i}`}
-                                  title={`Net paid moved ${swings[i]} from ${previousLabel}. Open the row and check the figures.`}
-                                >
-                                  ●
-                                </span>
-                              ) : null}
-                            </div>
-                            <div className="pay-grid__phone">
-                              {r.phone || (
-                                <span style={{ color: 'var(--danger)' }}>no phone</span>
-                              )}
-                            </div>
-                          </td>
-                          <td>
-                            <Num
-                              value={r.daysWorked}
-                              max={31}
-                              onChange={(v) => patch(i, { daysWorked: v })}
-                              testId={`days-${i}`}
-                            />
-                          </td>
-                          <td>
-                            <Num
-                              value={r.otHours}
-                              onChange={(v) => patch(i, { otHours: v })}
-                              testId={`ot-${i}`}
-                            />
-                          </td>
-                          <td>
-                            <Money
-                              value={r.outsidePay}
-                              onChange={(v) => patch(i, { outsidePay: v })}
-                            />
-                          </td>
-                          <td>
-                            <Money
-                              value={r.advanceDeducted}
-                              onChange={(v) => patch(i, { advanceDeducted: v })}
-                            />
-                          </td>
-                          <td className="pay-grid__net">
-                            <span className="pay-grid__netvalue" data-testid={`net-${i}`}>
-                              {formatRupees(derived[i].netPaid)}
-                            </span>
-                            <span className="pay-grid__delivery">
-                              {r.pdfUrl ? (
-                                <a href={r.pdfUrl} target="_blank" rel="noopener noreferrer">
-                                  {statusChip(r)}
-                                </a>
-                              ) : (
-                                statusChip(r)
-                              )}
-                            </span>
-                          </td>
-                          <td className="pay-grid__chev">
-                            <button
-                              className="pay-grid__toggle"
-                              onClick={() => setExpanded(expanded === i ? null : i)}
-                              aria-expanded={expanded === i}
-                              aria-label={`${expanded === i ? 'Hide' : 'Show'} the rest of ${r.employeeName}'s pay`}
-                              data-testid={`expand-${i}`}
-                            >
-                              {expanded === i ? '⌃' : '⌄'}
-                            </button>
-                          </td>
+                      {expanded.has(i) ? (
+                        <tr className="pay-detail-row">
+                          <td colSpan={12}>{detailPanel(i)}</td>
                         </tr>
-                        {expanded === i ? (
-                          <tr className="pay-detail-row">
-                            <td colSpan={7}>{detailPanel(i)}</td>
-                          </tr>
-                        ) : null}
-                      </Fragment>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+                      ) : null}
+                    </Fragment>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
 
           </>
         )}
