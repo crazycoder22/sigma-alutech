@@ -34,27 +34,43 @@ GitHub Pages — see [Domain cutover](#domain-cutover-not-done-yet).
 ## Topology
 
 ```mermaid
-flowchart LR
+flowchart TB
   visitor([Visitor])
-  owner([Admin])
+  owner([Admin · office])
+  staff([Employee])
 
   subgraph vercel["Vercel · project sigma-alutech · root directory web/"]
     edge["Edge network<br/>static assets, JS/CSS bundles"]
-    fn["Next.js server<br/>server components + /api routes"]
+    fn["Next.js server<br/>public pages · /admin · /api · payroll"]
     edge --> fn
   end
 
   visitor --> edge
   owner --> fn
-  fn -->|"SQL over TLS"| neon[("Neon Postgres · ap-southeast-1<br/>products · projects · admins")]
-  fn -->|"put / del · server-side token"| blob["Vercel Blob · sigma-alutech-blob<br/>uploaded photography"]
-  visitor -.->|"public image URLs, served direct"| blob
+
+  fn -->|"SQL over TLS · pooled"| neon[("Neon Postgres · ap-southeast-1<br/>catalog · projects · admins · payroll")]
+  fn -->|"put / del · server-side token"| blob["Vercel Blob · sigma-alutech-blob<br/>photography · payslip PDFs"]
+  visitor -.->|"public URLs, served direct"| blob
+  fn -. "not connected yet" .-> wa["WhatsApp Business Cloud API"]
+  wa -. "payslip PDF" .-> staff
+
+  legacy["GitHub Pages · legacy static site"]
+  visitor -->|"sigmaalutech.in"| legacy
 ```
 
 Every public page is server-rendered per request (`dynamic = 'force-dynamic'`)
 so catalog edits appear immediately without a rebuild. Uploaded images are
 served **directly from the Blob host** to the browser, not proxied through the
 app.
+
+Two dashed paths are built but carry no traffic yet:
+
+- **WhatsApp** — the provider is selected by `WHATSAPP_PROVIDER`. Until it is
+  `meta`, sends are simulated: validated and recorded per line, delivered to
+  nobody. See [Payroll and payslips](#payroll-and-payslips).
+- **The domain** — `sigmaalutech.in` still resolves to the legacy GitHub Pages
+  site in the repo root. The Next.js app is only on its Vercel URL. See
+  [Domain cutover](#domain-cutover-not-done-yet).
 
 ## Environments
 
@@ -113,7 +129,7 @@ can be deleted; nothing reads it.
 ```
 push to main ──┬──▶ GitHub Actions ── legacy Vitest
                │                    └ web: schema push → JSON migrate → seed →
-               │                         Vitest (59) → Playwright (44)
+               │                         Vitest (60) → Playwright (47)
                └──▶ Vercel ── npm ci → next build → promote to production
 ```
 
@@ -123,6 +139,12 @@ still deploy. Check the Actions tab after pushing, or deploy deliberately with
 
 CI provisions its own throwaway Postgres service container, so it never touches
 Neon.
+
+> **The Vercel git integration has been observed to miss a push.** On
+> 2026-07-27 two commits deployed within a minute and the next produced no
+> build at all. A skipped deploy looks exactly like a successful one from
+> outside, so after pushing confirm with `vercel ls sigma-alutech` — and if
+> nothing new is listed, ship it yourself with `vercel deploy --prod`.
 
 ## Schema and content changes
 
