@@ -141,7 +141,7 @@ export function EmployeesAdmin({ employees }: Props) {
             />
           </div>
           <button
-            className="btn btn--primary btn--small"
+            className="btn btn--primary btn--small head-add"
             data-testid="add-employee"
             onClick={() => {
               setError('');
@@ -244,37 +244,50 @@ export function EmployeesAdmin({ employees }: Props) {
         ) : null}
 
         {/* Cards — mobile */}
-        <div className="rec-list">
+        <div className="emp-cards">
           {visible.map((e) => (
-            <div className="rec" key={e.id} data-testid={`employee-row-${e.id}`}>
-              <div className="rec__body">
-                <div className="rec__top">
-                  <span className="rec__name">{e.name}</span>
+            <div className="emp-card" key={e.id} data-testid={`employee-row-${e.id}`}>
+              <div className="emp-card__top">
+                <span className="emp-card__name">
+                  {e.name}
                   {!e.active ? <span className="tag--type">Inactive</span> : null}
-                </div>
-                <span className="rec__slug">
-                  {e.phone ? e.phone : 'No phone number'} · Gross{' '}
-                  {formatRupees(e.grossSalary)}
                 </span>
-                <div className="rec__actions">
-                  <button
-                    className="btn btn--outline btn--small"
-                    onClick={() => {
-                      setError('');
-                      setSuccess('');
-                      setForm(toForm(e));
-                    }}
-                  >
-                    Edit
-                  </button>
-                  <button
-                    className="icon-btn icon-btn--danger"
-                    onClick={() => remove(e)}
-                    aria-label={`Remove ${e.name}`}
-                  >
-                    ⌫
-                  </button>
-                </div>
+                <span
+                  className={`emp-card__phone${
+                    phoneLooksValid(e.phone) ? '' : ' emp-card__phone--missing'
+                  }`}
+                >
+                  {e.phone || 'Missing'}
+                </span>
+              </div>
+              <div className="emp-card__stats">
+                <span className="emp-stat">
+                  <span className="emp-stat__label">Gross</span>
+                  <span className="emp-stat__value">{formatRupees(e.grossSalary)}</span>
+                </span>
+                <span className="emp-stat">
+                  <span className="emp-stat__label">PF</span>
+                  <span className="emp-stat__value">{formatRupees(e.pfContribution)}</span>
+                </span>
+                <span className="emp-stat">
+                  <span className="emp-stat__label">Bus pass</span>
+                  <span className="emp-stat__value">{formatRupees(e.busPass)}</span>
+                </span>
+              </div>
+              <div className="emp-card__actions">
+                <button
+                  className="btn btn--outline btn--small"
+                  onClick={() => {
+                    setError('');
+                    setSuccess('');
+                    setForm(toForm(e));
+                  }}
+                >
+                  Edit
+                </button>
+                <button className="btn btn--danger btn--small" onClick={() => remove(e)}>
+                  Remove
+                </button>
               </div>
             </div>
           ))}
@@ -331,6 +344,21 @@ export function EmployeesAdmin({ employees }: Props) {
           </div>
         ) : null}
       </div>
+
+      {form ? null : (
+        <div className="pay-bar pay-bar--run">
+          <button
+            className="btn btn--primary btn--block"
+            onClick={() => {
+              setError('');
+              setSuccess('');
+              setForm(empty(employees.length));
+            }}
+          >
+            + Add employee
+          </button>
+        </div>
+      )}
     </>
   );
 }

@@ -1,6 +1,7 @@
 import { redirect, notFound } from 'next/navigation';
 import { getSession } from '@/lib/auth';
 import { getRun } from '@/lib/payroll/store';
+import { parseId } from '@/lib/api-helpers';
 import { isLiveProvider } from '@/lib/payroll/whatsapp';
 import { PayrollRunEditor } from '@/components/admin/PayrollRunEditor';
 
@@ -14,7 +15,9 @@ export default async function AdminPayrollRunPage({
   const session = await getSession();
   if (!session) redirect('/admin');
 
-  const run = await getRun(Number((await params).id));
+  const id = parseId((await params).id);
+  if (id === null) notFound();
+  const run = await getRun(id);
   if (!run) notFound();
 
   return <PayrollRunEditor run={run} whatsappLive={isLiveProvider()} />;

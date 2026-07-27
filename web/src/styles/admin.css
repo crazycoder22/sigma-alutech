@@ -1655,3 +1655,678 @@
   color: var(--text-primary);
   font-style: normal;
 }
+
+/* ============================================================
+   Payroll — pay run, per-person editor, payslip preview
+   ============================================================ */
+
+/* The net column carries the amount and its delivery state together, so
+   the grid keeps the design's column set without losing the status. */
+.pay-grid__netvalue {
+  display: block;
+  font-size: 1rem;
+}
+
+.pay-grid__delivery {
+  display: block;
+  margin-top: 3px;
+}
+
+.run-summary__days {
+  width: 70px;
+  text-align: left;
+}
+
+/* Grid on desktop, cards on mobile — the numbers are unreadable in a
+   1000px table on a phone. */
+.grid-scroll {
+  display: none;
+}
+
+.pay-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+@media (min-width: 1024px) {
+  .grid-scroll {
+    display: block;
+  }
+  .pay-cards {
+    display: none;
+  }
+}
+
+.pay-card {
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pay-card__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.pay-card__id {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.pay-card__name {
+  font-size: var(--fs-body);
+  font-weight: var(--fw-medium);
+  letter-spacing: 0.03em;
+  color: var(--text-primary);
+}
+
+.pay-card__sub {
+  font-size: var(--fs-micro);
+  font-weight: var(--fw-light);
+  color: var(--text-placeholder);
+}
+
+.pay-card__money {
+  flex: none;
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pay-card__net {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  color: var(--text-primary);
+}
+
+.pay-card__status {
+  font-size: var(--fs-micro);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.pay-card__actions {
+  display: flex;
+  gap: 8px;
+}
+
+.pay-card__actions .btn {
+  flex: 1;
+}
+
+.pay-card__open {
+  flex: none !important;
+  width: 48px;
+  padding: 12px 0;
+}
+
+/* ---- Full-screen mobile sheets ---- */
+.pay-sheet {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: var(--bg-primary);
+}
+
+.pay-sheet__head {
+  background: var(--ink);
+  padding: 14px var(--gutter);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pay-sheet__back {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  color: var(--gold-on-ink);
+  padding: 0;
+}
+
+.pay-sheet__id {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.pay-sheet__name {
+  font-size: var(--fs-body);
+  letter-spacing: 0.04em;
+  color: var(--text-on-ink);
+}
+
+.pay-sheet__sub {
+  font-size: var(--fs-micro);
+  font-weight: var(--fw-light);
+  color: var(--text-on-ink-muted);
+}
+
+.pay-sheet__title {
+  flex: 1;
+  font-size: var(--fs-small);
+  letter-spacing: var(--ls-wider);
+  text-transform: uppercase;
+  color: var(--text-on-ink);
+}
+
+.pay-sheet__pdf {
+  font-size: var(--fs-micro);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--gold-on-ink);
+}
+
+.pay-sheet__pdf--off {
+  color: var(--text-on-ink-muted);
+}
+
+.pay-sheet__net {
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-strong);
+  padding: 16px var(--gutter);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.pay-sheet__net-label {
+  font-size: var(--fs-micro);
+  letter-spacing: var(--ls-wider);
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+.pay-sheet__net-value {
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  color: var(--text-primary);
+}
+
+.pay-sheet__body {
+  flex: 1;
+  padding: 18px var(--gutter) 120px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.pay-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pay-group__label {
+  font-size: var(--fs-micro);
+  letter-spacing: var(--ls-wider);
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.pay-group__row {
+  display: flex;
+  gap: 10px;
+}
+
+.pay-group__row .pay-field {
+  flex: 1;
+}
+
+.pay-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pay-field__label {
+  font-size: var(--fs-small);
+  font-weight: var(--fw-light);
+  color: var(--text-secondary);
+}
+
+.pay-input {
+  width: 100%;
+  padding: 14px;
+  font-size: 1rem;
+  color: var(--text-primary);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-strong);
+  outline: none;
+  transition: border-color var(--transition-fast);
+}
+
+.pay-input:focus {
+  border-color: var(--gold);
+}
+
+.pay-input::-webkit-outer-spin-button,
+.pay-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.pay-input[type='number'] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.pay-balance {
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  padding: 13px 14px;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: var(--fs-small);
+  font-weight: var(--fw-light);
+  color: var(--text-secondary);
+}
+
+.pay-balance__value {
+  color: var(--text-primary);
+}
+
+/* ---- Sticky action bar (mobile only) ---- */
+.pay-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  display: flex;
+  gap: 10px;
+  padding: 16px var(--gutter) 20px;
+  background: linear-gradient(180deg, transparent, var(--bg-primary) 40%);
+}
+
+.pay-bar__icon {
+  flex: none;
+  width: 56px;
+  padding: 16px 0;
+  background: var(--bg-surface);
+}
+
+@media (min-width: 1024px) {
+  .pay-bar--run {
+    display: none;
+  }
+  .pay-sheet {
+    max-width: 480px;
+    margin: 0 auto;
+    min-height: 0;
+  }
+  .pay-sheet__body {
+    padding-bottom: 20px;
+  }
+}
+
+/* ---- On-screen payslip (mirrors the PDF) ---- */
+.slip {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+}
+
+.slip__head {
+  background: var(--ink);
+  padding: 16px 18px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.slip__head-right {
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.slip__kicker {
+  font-size: var(--fs-micro);
+  letter-spacing: var(--ls-wider);
+  text-transform: uppercase;
+  color: var(--gold-on-ink);
+}
+
+.slip__period {
+  font-size: var(--fs-small);
+  font-weight: var(--fw-light);
+  color: var(--text-on-ink-secondary);
+}
+
+.slip__body {
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.slip__person {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.slip__col {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.slip__col--right {
+  text-align: right;
+  flex: none;
+}
+
+.slip__label {
+  font-size: var(--fs-micro);
+  letter-spacing: var(--ls-wider);
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.slip__name {
+  font-family: var(--font-display);
+  font-size: 1.1875rem;
+  letter-spacing: 0.03em;
+  color: var(--text-primary);
+}
+
+.slip__section {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.slip__section .slip__label {
+  padding-bottom: 6px;
+}
+
+.slip__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 5px 0;
+  font-size: var(--fs-body);
+  color: var(--text-primary);
+}
+
+.slip__row--total {
+  margin-top: 8px;
+  padding: 12px 0 0;
+  border-top: 1px solid var(--border);
+  font-weight: var(--fw-medium);
+}
+
+.slip__row--quiet {
+  padding: 4px 0;
+  font-size: var(--fs-small);
+  font-weight: var(--fw-light);
+  color: var(--text-secondary);
+}
+
+.slip__net {
+  background: var(--bg-secondary);
+  border-left: 3px solid var(--gold);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.slip__net-label {
+  font-size: var(--fs-micro);
+  letter-spacing: var(--ls-wider);
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+.slip__net-value {
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  color: var(--text-primary);
+}
+
+.slip__foot {
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+  font-size: var(--fs-micro);
+  font-weight: var(--fw-light);
+  line-height: var(--lh-normal);
+  color: var(--text-placeholder);
+}
+
+/* ---- Button variants used by the payroll screens ---- */
+.btn--ink {
+  background: var(--ink);
+  color: var(--text-on-ink);
+}
+
+.btn--ink:hover {
+  background: var(--text-primary);
+  color: var(--text-on-ink);
+}
+
+.btn--quiet {
+  border-color: var(--border);
+  color: var(--text-secondary);
+  background: transparent;
+}
+
+.btn--quiet:hover {
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
+
+.btn--danger {
+  border-color: var(--border);
+  color: var(--text-muted);
+  background: transparent;
+}
+
+.btn--danger:hover {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+/* ---- Employees: cards on mobile, table on desktop ---- */
+.emp-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+@media (min-width: 1024px) {
+  .emp-cards {
+    display: none;
+  }
+}
+
+.emp-card {
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.emp-card__top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.emp-card__name {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: var(--fs-body);
+  font-weight: var(--fw-medium);
+  letter-spacing: 0.03em;
+  color: var(--text-primary);
+}
+
+.emp-card__phone {
+  flex: none;
+  font-size: var(--fs-small);
+  font-weight: var(--fw-light);
+  color: var(--text-placeholder);
+}
+
+.emp-card__phone--missing {
+  color: var(--danger);
+}
+
+.emp-card__stats {
+  display: flex;
+  gap: 8px;
+}
+
+.emp-stat {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--border);
+  padding: 9px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.emp-stat__label {
+  font-size: var(--fs-micro);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.emp-stat__value {
+  font-size: var(--fs-small);
+  color: var(--text-primary);
+}
+
+.emp-card__actions {
+  display: flex;
+  gap: 8px;
+}
+
+.emp-card__actions .btn {
+  flex: 1;
+}
+
+.emp-card__actions .btn--danger {
+  flex: none;
+  width: 96px;
+}
+
+/* On a phone the run summary leads with the two figures the design puts
+   there — net payable and payslips sent — and the rest follows. */
+@media (max-width: 899px) {
+  .run-summary__item--netcell {
+    order: 1;
+  }
+  .run-summary__item--slips {
+    order: 2;
+  }
+  .run-summary__item--emp {
+    order: 3;
+  }
+  .run-summary__item--days {
+    order: 4;
+  }
+  .run-summary__item--earn {
+    order: 5;
+    grid-column: 1 / -1;
+  }
+}
+
+/* The payroll header keeps its actions on mobile — only Send moves to the
+   sticky bar. (The product/project editors hide theirs entirely.) */
+@media (max-width: 1023px) {
+  .editor__head-actions--run .btn {
+    display: inline-flex;
+  }
+  .editor__head-actions--run [data-testid='send-payslips'] {
+    display: none;
+  }
+}
+
+/* On a phone the sticky bar carries "Add employee", so the header does not
+   repeat it. */
+@media (max-width: 1023px) {
+  .head-add {
+    display: none;
+  }
+}
+
+/* ---- Calculated cells: the sheet's own derived columns, shown but
+   not editable, so the arithmetic can be checked in place. ---- */
+.pay-grid__calc,
+.pay-grid th.pay-grid__calc {
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.pay-grid th.pay-grid__calc {
+  color: var(--gold);
+}
+
+.grid-legend {
+  font-size: var(--fs-small);
+  font-weight: var(--fw-light);
+  line-height: var(--lh-normal);
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+
+@media (max-width: 1023px) {
+  .grid-legend {
+    display: none;
+  }
+}
+
+.pay-calc {
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+}
+
+.pay-calc__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--border);
+  font-size: var(--fs-small);
+  font-weight: var(--fw-light);
+  color: var(--text-secondary);
+}
+
+.pay-calc__row:last-child {
+  border-bottom: none;
+}
+
+.pay-calc__row span:last-child {
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}

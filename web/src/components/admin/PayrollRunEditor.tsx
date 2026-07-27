@@ -3,13 +3,19 @@
 import { useRouter } from 'next/navigation';
 import { useMemo, useRef, useState } from 'react';
 import type { PayrollLine, PayrollRun } from '@/db';
+import { SITE } from '@/lib/site';
 import {
   calculatePay,
+  HOURS_PER_DAY,
+  deductionsBreakdown,
+  earningsBreakdown,
   formatPeriod,
   formatRupees,
+  sumDeductions,
   sumEarnings,
   toRupees,
   toPaise,
+  type PayDerived,
 } from '@/lib/payroll/calc';
 import { messageText } from '@/lib/payroll/whatsapp';
 
@@ -43,6 +49,9 @@ interface Row {
   sheetName?: string;
 }
 
+/** Which mobile screen is open on top of the pay run. */
+type Sheet = { kind: 'edit' | 'slip'; index: number } | null;
+
 const fromLine = (l: PayrollLine): Row => ({
   id: l.id,
   employeeId: l.employeeId,
@@ -65,19 +74,26 @@ const fromLine = (l: PayrollLine): Row => ({
   deliveryError: l.deliveryError,
 });
 
+const firstName = (name: string) => {
+  const word = name.replace(/\(.*?\)/g, '').trim().split(/\s+/)[0] ?? name;
+  return word.charAt(0) + word.slice(1).toLowerCase();
+};
+
 /** Money cell: displays rupees, stores paise. */
 function Money({
   value,
   onChange,
   testId,
+  className = 'grid-input',
 }: {
   value: number;
   onChange: (paise: number) => void;
   testId?: string;
+  className?: string;
 }) {
   return (
     <input
-      className="grid-input"
+      className={className}
       type="number"
       step="1"
       inputMode="decimal"
@@ -94,15 +110,17 @@ function Num({
   onChange,
   max,
   testId,
+  className = 'grid-input',
 }: {
   value: number;
   onChange: (n: number) => void;
   max?: number;
   testId?: string;
+  className?: string;
 }) {
   return (
     <input
-      className="grid-input"
+      className={className}
       type="number"
       step="1"
       min={0}
@@ -112,6 +130,22 @@ function Num({
       placeholder="0"
       onChange={(e) => onChange(Number(e.target.value) || 0)}
     />
+  );
+}
+
+/** One labelled input in the mobile editor. */
+function PayField({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <label className="pay-field">
+      <span className="pay-field__label">{label}</span>
+      {children}
+    </label>
   );
 }
 
@@ -128,6 +162,7 @@ export function PayrollRunEditor({ run, whatsappLive }: Props) {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [notices, setNotices] = useState<string[]>([]);
+  const [sheet, setSheet] = useState<Sheet>(null);
 
   const dirty = JSON.stringify(rows) !== baseline;
   const generated = rows.filter((r) => r.pdfUrl).length;
@@ -203,7 +238,9 @@ export function PayrollRunEditor({ run, whatsappLive }: Props) {
   }
 
   /* ---------------- actions ---------------- */
-  async function save() {
+
+  /** Persist the grid. Returns the saved rows, or null when it failed. */
+  async function save(): Promise<Row[] | null> {
     setBusy('save');
     setError('');
     try {
@@ -234,7 +271,7 @@ export function PayrollRunEditor({ run, whatsappLive }: Props) {
       const data = await res.json();
       if (!res.ok) {
         setError(data.error ?? 'Save failed');
-        return;
+        return null;
       }
       const fresh: Row[] = data.run.lines.map(fromLine);
       setRows(fresh);
@@ -242,8 +279,10 @@ export function PayrollRunEditor({ run, whatsappLive }: Props) {
       setSuccess('Draft saved.');
       setNotices([]);
       router.refresh();
+      return fresh;
     } catch {
       setError('Network error — please try again');
+      return null;
     } finally {
       setBusy('');
     }
@@ -275,23 +314,34 @@ export function PayrollRunEditor({ run, whatsappLive }: Props) {
     }
   }
 
-  async function send() {
-    const pending = rows.filter((r) => r.deliveryStatus !== 'sent').length;
+  /** Send everyone still outstanding, or just the given lines. */
+  async function send(lineIds?: number[]) {
+    const count = lineIds
+      ? lineIds.length
+      : rows.filter((r) => r.deliveryStatus !== 'sent').length;
     const warning = whatsappLive
-      ? `Send ${pending} payslip(s) over WhatsApp now? Employees will receive them immediately.`
-      : `WhatsApp is not connected yet, so this is a simulation — no message will actually leave. Continue with ${pending} payslip(s)?`;
+      ? `Send ${count} payslip(s) over WhatsApp now? Employees will receive them immediately.`
+      : `WhatsApp is not connected yet, so this is a simulation — no message will actually leave. Continue with ${count} payslip(s)?`;
     if (!confirm(warning)) return;
 
     setBusy('send');
     setError('');
     try {
-      const res = await fetch(`/api/payroll/${run.id}/send`, { method: 'POST' });
+      const res = await fetch(`/api/payroll/${run.id}/send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(lineIds ? { lineIds } : {}),
+      });
       const data = await res.json();
       if (!res.ok) {
         setError(data.error ?? 'Send failed');
         return;
       }
-      if (data.run) setRows(data.run.lines.map(fromLine));
+      if (data.run) {
+        const fresh: Row[] = data.run.lines.map(fromLine);
+        setRows(fresh);
+        setBaseline(JSON.stringify(fresh));
+      }
       setSuccess(
         `${data.simulated ? 'Simulated: ' : ''}${data.sent} sent, ${data.failed} failed, ${data.skipped} skipped.`
       );
@@ -303,6 +353,30 @@ export function PayrollRunEditor({ run, whatsappLive }: Props) {
     }
   }
 
+  /** Mobile: save the whole draft, then send this one person. */
+  async function saveAndSend(index: number) {
+    const fresh = dirty ? await save() : rows;
+    if (!fresh) return;
+    const id = fresh[index]?.id;
+    if (!id) {
+      setError('Save the draft before sending.');
+      return;
+    }
+    if (!fresh[index].pdfUrl) {
+      setError('Generate the payslips first — there is nothing to attach yet.');
+      return;
+    }
+    setSheet(null);
+    await send([id]);
+  }
+
+  const statusLabel = (r: Row) => {
+    if (r.deliveryStatus === 'sent') return 'Sent';
+    if (r.deliveryStatus === 'failed') return 'Failed';
+    if (r.deliveryStatus === 'skipped') return 'Skipped';
+    return r.pdfUrl ? 'Ready' : 'Not sent';
+  };
+
   const statusChip = (r: Row) => {
     if (r.deliveryStatus === 'sent') return <span className="chip-ok">Sent</span>;
     if (r.deliveryStatus === 'failed')
@@ -312,6 +386,326 @@ export function PayrollRunEditor({ run, whatsappLive }: Props) {
     return <span className="chip-idle">{r.pdfUrl ? 'Ready' : '—'}</span>;
   };
 
+  /* ---------------- mobile: one person's pay ----------------
+     Plain render helpers, not components: they close over the editor's
+     state, and a nested component would remount on every keystroke. */
+  function editSheet(index: number) {
+    const r = rows[index];
+    const d = derived[index];
+    return (
+      <div className="pay-sheet" data-testid="pay-sheet-edit">
+        <div className="pay-sheet__head">
+          <button
+            className="pay-sheet__back"
+            onClick={() => setSheet(null)}
+            aria-label="Back to the pay run"
+          >
+            ←
+          </button>
+          <span className="pay-sheet__id">
+            <span className="pay-sheet__name">{r.employeeName}</span>
+            <span className="pay-sheet__sub">
+              {formatPeriod(run.period)} · {r.phone || 'no phone number'}
+            </span>
+          </span>
+        </div>
+
+        <div className="pay-sheet__net">
+          <span className="pay-sheet__net-label">Net paid</span>
+          <span className="pay-sheet__net-value" data-testid="sheet-net">
+            Rs {formatRupees(d.netPaid)}
+          </span>
+        </div>
+
+        <div className="pay-sheet__body">
+          <div className="pay-group">
+            <div className="pay-group__label">Attendance</div>
+            <div className="pay-group__row">
+              <PayField label="Days worked">
+                <Num
+                  className="pay-input"
+                  value={r.daysWorked}
+                  max={31}
+                  onChange={(v) => patch(index, { daysWorked: v })}
+                  testId="sheet-days"
+                />
+              </PayField>
+              <PayField label="Overtime hrs">
+                <Num
+                  className="pay-input"
+                  value={r.otHours}
+                  onChange={(v) => patch(index, { otHours: v })}
+                />
+              </PayField>
+            </div>
+          </div>
+
+          <div className="pay-group">
+            <div className="pay-group__label">Earnings</div>
+            <PayField label="Monthly gross">
+              <Money
+                className="pay-input"
+                value={r.grossSalary}
+                onChange={(v) => patch(index, { grossSalary: v })}
+              />
+            </PayField>
+            <div className="pay-group__row">
+              <PayField label="Outside pay">
+                <Money
+                  className="pay-input"
+                  value={r.outsidePay}
+                  onChange={(v) => patch(index, { outsidePay: v })}
+                />
+              </PayField>
+              <PayField label="Att. bonus">
+                <Money
+                  className="pay-input"
+                  value={r.attendanceBonus}
+                  onChange={(v) => patch(index, { attendanceBonus: v })}
+                />
+              </PayField>
+            </div>
+            <PayField label="Bus pass / conveyance">
+              <Money
+                className="pay-input"
+                value={r.busPass}
+                onChange={(v) => patch(index, { busPass: v })}
+              />
+            </PayField>
+          </div>
+
+          <div className="pay-group">
+            <div className="pay-group__label">Deductions</div>
+            <div className="pay-group__row">
+              <PayField label="Advance pending">
+                <Money
+                  className="pay-input"
+                  value={r.advancePending}
+                  onChange={(v) => patch(index, { advancePending: v })}
+                />
+              </PayField>
+              <PayField label="Advance deducted">
+                <Money
+                  className="pay-input"
+                  value={r.advanceDeducted}
+                  onChange={(v) => patch(index, { advanceDeducted: v })}
+                />
+              </PayField>
+            </div>
+            <div className="pay-group__row">
+              <PayField label="PF">
+                <Money
+                  className="pay-input"
+                  value={r.pfContribution}
+                  onChange={(v) => patch(index, { pfContribution: v })}
+                />
+              </PayField>
+            </div>
+            <PayField label="Phone bill">
+              <Money
+                className="pay-input"
+                value={r.phoneDeduction}
+                onChange={(v) => patch(index, { phoneDeduction: v })}
+              />
+            </PayField>
+            <div className="pay-balance">
+              <span>Advance balance after this month</span>
+              <span className="pay-balance__value">{formatRupees(d.balanceAdvance)}</span>
+            </div>
+          </div>
+
+          {/* What the sheet works out from the figures above. */}
+          <div className="pay-group">
+            <div className="pay-group__label">Calculated</div>
+            <div className="pay-calc">
+              <div className="pay-calc__row">
+                <span>Salary per day</span>
+                <span>{formatRupees(d.salaryPerDay)}</span>
+              </div>
+              <div className="pay-calc__row">
+                <span>Earned salary · {r.daysWorked} of {days} days</span>
+                <span>{formatRupees(d.earnedSalary)}</span>
+              </div>
+              <div className="pay-calc__row">
+                <span>
+                  Overtime · {r.otHours} hrs at {HOURS_PER_DAY} hrs/day
+                </span>
+                <span>{formatRupees(d.otAmount)}</span>
+              </div>
+              <div className="pay-calc__row">
+                <span>Total earnings</span>
+                <span>{formatRupees(d.totalEarnings)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="pay-bar">
+          <button
+            className="btn btn--ink btn--block"
+            onClick={async () => {
+              if (await save()) setSheet(null);
+            }}
+            disabled={Boolean(busy)}
+          >
+            {busy === 'save' ? 'Saving…' : 'Save'}
+          </button>
+          <button
+            className="btn btn--outline btn--block"
+            onClick={() => saveAndSend(index)}
+            disabled={Boolean(busy)}
+          >
+            Save &amp; send
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  /* ---------------- mobile: payslip preview ---------------- */
+  function slipSheet(index: number) {
+    const r = rows[index];
+    const d: PayDerived = derived[index];
+    const earnings = earningsBreakdown(r, d);
+    const deductions = deductionsBreakdown(r);
+    const showAdvance = Boolean(r.advancePending || r.advanceDeducted || d.balanceAdvance);
+
+    return (
+      <div className="pay-sheet" data-testid="pay-sheet-slip">
+        <div className="pay-sheet__head">
+          <button
+            className="pay-sheet__back"
+            onClick={() => setSheet(null)}
+            aria-label="Back to the pay run"
+          >
+            ←
+          </button>
+          <span className="pay-sheet__title">Payslip</span>
+          {r.pdfUrl ? (
+            <a className="pay-sheet__pdf" href={r.pdfUrl} target="_blank" rel="noopener noreferrer">
+              PDF ⤓
+            </a>
+          ) : (
+            <span className="pay-sheet__pdf pay-sheet__pdf--off">Not generated</span>
+          )}
+        </div>
+
+        <div className="pay-sheet__body">
+          <div className="slip">
+            <div className="slip__head">
+              <span className="admin-logo">
+                SIGMA <span>ALUTECH</span>
+              </span>
+              <span className="slip__head-right">
+                <span className="slip__kicker">Salary statement</span>
+                <span className="slip__period">{formatPeriod(run.period)}</span>
+              </span>
+            </div>
+
+            <div className="slip__body">
+              <div className="slip__person">
+                <span className="slip__col">
+                  <span className="slip__label">Employee</span>
+                  <span className="slip__name">{r.employeeName}</span>
+                </span>
+                <span className="slip__col slip__col--right">
+                  <span className="slip__label">Days</span>
+                  <span className="slip__name">{r.daysWorked}</span>
+                </span>
+              </div>
+
+              <div className="slip__section">
+                <div className="slip__label">Earnings</div>
+                {earnings.map((row) => (
+                  <div className="slip__row" key={row.label}>
+                    <span>
+                      {row.label}
+                      {row.detail ? ` · ${row.detail}` : ''}
+                    </span>
+                    <span>{formatRupees(row.amount)}</span>
+                  </div>
+                ))}
+                <div className="slip__row slip__row--total">
+                  <span>Total earnings</span>
+                  <span>{formatRupees(sumEarnings(r, d))}</span>
+                </div>
+              </div>
+
+              <div className="slip__section">
+                <div className="slip__label">Deductions</div>
+                {deductions.length === 0 ? (
+                  <div className="slip__row">
+                    <span>None</span>
+                    <span>—</span>
+                  </div>
+                ) : (
+                  deductions.map((row) => (
+                    <div className="slip__row" key={row.label}>
+                      <span>{row.label}</span>
+                      <span>- {formatRupees(row.amount)}</span>
+                    </div>
+                  ))
+                )}
+                <div className="slip__row slip__row--total">
+                  <span>Total deductions</span>
+                  <span>- {formatRupees(sumDeductions(r))}</span>
+                </div>
+              </div>
+
+              <div className="slip__net">
+                <span className="slip__net-label">Net salary paid</span>
+                <span className="slip__net-value">Rs {formatRupees(d.netPaid)}</span>
+              </div>
+
+              {showAdvance ? (
+                <div className="slip__section">
+                  <div className="slip__label">Advance</div>
+                  <div className="slip__row slip__row--quiet">
+                    <span>Opening</span>
+                    <span>{formatRupees(r.advancePending)}</span>
+                  </div>
+                  <div className="slip__row slip__row--quiet">
+                    <span>Deducted</span>
+                    <span>{formatRupees(r.advanceDeducted)}</span>
+                  </div>
+                  <div className="slip__row slip__row--quiet">
+                    <span>Carried forward</span>
+                    <span>{formatRupees(d.balanceAdvance)}</span>
+                  </div>
+                </div>
+              ) : null}
+
+              <div className="slip__foot">
+                {SITE.name} · {SITE.address} · {SITE.phoneDisplay}
+                <br />
+                Computer-generated statement.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="pay-bar">
+          <button
+            className="btn btn--primary btn--block"
+            onClick={() => saveAndSend(index)}
+            disabled={Boolean(busy) || !r.pdfUrl}
+          >
+            Send to {firstName(r.employeeName)}
+          </button>
+          {r.pdfUrl ? (
+            <a className="btn btn--outline pay-bar__icon" href={r.pdfUrl} download>
+              ⤓
+            </a>
+          ) : null}
+        </div>
+      </div>
+    );
+  }
+
+  if (sheet) {
+    return sheet.kind === 'edit' ? editSheet(sheet.index) : slipSheet(sheet.index);
+  }
+
   return (
     <>
       <div className="editor__head">
@@ -319,7 +713,7 @@ export function PayrollRunEditor({ run, whatsappLive }: Props) {
           <div className="editor__label">Payroll</div>
           <div className="editor__title">{formatPeriod(run.period)}</div>
         </div>
-        <div className="editor__head-actions">
+        <div className="editor__head-actions editor__head-actions--run">
           <span className={dirty ? 'editor__dirty' : 'editor__saved'} data-testid="dirty-state">
             {dirty ? '● Unsaved changes' : 'Saved'}
           </span>
@@ -354,7 +748,7 @@ export function PayrollRunEditor({ run, whatsappLive }: Props) {
           </a>
           <button
             className="btn btn--primary btn--small"
-            onClick={send}
+            onClick={() => send()}
             disabled={Boolean(busy) || generated === 0}
             data-testid="send-payslips"
           >
@@ -406,15 +800,14 @@ export function PayrollRunEditor({ run, whatsappLive }: Props) {
 
       <div className="admin-body">
         <div className="run-summary">
-          <div className="run-summary__item">
+          <div className="run-summary__item run-summary__item--emp">
             <span className="run-summary__label">Employees</span>
             <span className="run-summary__value">{rows.length}</span>
           </div>
-          <div className="run-summary__item">
+          <div className="run-summary__item run-summary__item--days">
             <span className="run-summary__label">Days in month</span>
             <input
-              className="grid-input"
-              style={{ width: 70, textAlign: 'left' }}
+              className="grid-input run-summary__days"
               type="number"
               min={28}
               max={31}
@@ -422,17 +815,17 @@ export function PayrollRunEditor({ run, whatsappLive }: Props) {
               onChange={(e) => setDays(Number(e.target.value) || 30)}
             />
           </div>
-          <div className="run-summary__item">
+          <div className="run-summary__item run-summary__item--earn">
             <span className="run-summary__label">Total earnings</span>
             <span className="run-summary__value">{formatRupees(totals.earnings)}</span>
           </div>
-          <div className="run-summary__item run-summary__item--net">
+          <div className="run-summary__item run-summary__item--net run-summary__item--netcell">
             <span className="run-summary__label">Net payable</span>
             <span className="run-summary__value" data-testid="total-net">
               {formatRupees(totals.net)}
             </span>
           </div>
-          <div className="run-summary__item">
+          <div className="run-summary__item run-summary__item--slips">
             <span className="run-summary__label">Payslips</span>
             <span className="run-summary__value">
               {generated}/{rows.length} · {sent} sent
@@ -446,100 +839,217 @@ export function PayrollRunEditor({ run, whatsappLive }: Props) {
             Employees page first.
           </div>
         ) : (
-          <div className="grid-scroll">
-            <table className="pay-grid">
-              <thead>
-                <tr>
-                  <th className="pay-grid__name">Name</th>
-                  <th>Days</th>
-                  <th>Gross</th>
-                  <th>OT hrs</th>
-                  <th>Outside</th>
-                  <th>Att. bonus</th>
-                  <th>Bus pass</th>
-                  <th>Adv. ded.</th>
-                  <th>PF</th>
-                  <th>Phone ded.</th>
-                  <th className="pay-grid__net">Net paid</th>
-                  <th>Payslip</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((r, i) => (
-                  <tr key={r.id ?? `new-${i}`} data-testid={`pay-row-${i}`}>
-                    <td className="pay-grid__name">
-                      <div className="pay-grid__person">{r.employeeName}</div>
-                      <div className="pay-grid__phone">
-                        {r.phone || <span style={{ color: 'var(--danger)' }}>no phone</span>}
-                      </div>
-                    </td>
-                    <td>
-                      <Num
-                        value={r.daysWorked}
-                        max={31}
-                        onChange={(v) => patch(i, { daysWorked: v })}
-                        testId={`days-${i}`}
-                      />
-                    </td>
-                    <td>
-                      <Money
-                        value={r.grossSalary}
-                        onChange={(v) => patch(i, { grossSalary: v })}
-                        testId={`gross-${i}`}
-                      />
-                    </td>
-                    <td>
-                      <Num value={r.otHours} onChange={(v) => patch(i, { otHours: v })} />
-                    </td>
-                    <td>
-                      <Money value={r.outsidePay} onChange={(v) => patch(i, { outsidePay: v })} />
-                    </td>
-                    <td>
-                      <Money
-                        value={r.attendanceBonus}
-                        onChange={(v) => patch(i, { attendanceBonus: v })}
-                      />
-                    </td>
-                    <td>
-                      <Money value={r.busPass} onChange={(v) => patch(i, { busPass: v })} />
-                    </td>
-                    <td>
-                      <Money
-                        value={r.advanceDeducted}
-                        onChange={(v) => patch(i, { advanceDeducted: v })}
-                      />
-                    </td>
-                    <td>
-                      <Money
-                        value={r.pfContribution}
-                        onChange={(v) => patch(i, { pfContribution: v })}
-                      />
-                    </td>
-                    <td>
-                      <Money
-                        value={r.phoneDeduction}
-                        onChange={(v) => patch(i, { phoneDeduction: v })}
-                      />
-                    </td>
-                    <td className="pay-grid__net" data-testid={`net-${i}`}>
-                      {formatRupees(derived[i].netPaid)}
-                    </td>
-                    <td>
-                      {r.pdfUrl ? (
-                        <a href={r.pdfUrl} target="_blank" rel="noopener noreferrer">
-                          {statusChip(r)}
-                        </a>
-                      ) : (
-                        statusChip(r)
-                      )}
-                    </td>
+          <>
+            {/* Cards — mobile */}
+            <div className="pay-cards">
+              {rows.map((r, i) => (
+                <div className="pay-card" key={r.id ?? `new-${i}`}>
+                  <div className="pay-card__top">
+                    <span className="pay-card__id">
+                      <span className="pay-card__name">{r.employeeName}</span>
+                      <span className="pay-card__sub">
+                        {r.phone || 'no phone'} · {r.daysWorked} days
+                      </span>
+                    </span>
+                    <span className="pay-card__money">
+                      <span className="pay-card__net">{formatRupees(derived[i].netPaid)}</span>
+                      <span className="pay-card__status">{statusLabel(r)}</span>
+                    </span>
+                  </div>
+                  <div className="pay-card__actions">
+                    <button
+                      className="btn btn--outline btn--small"
+                      onClick={() => setSheet({ kind: 'edit', index: i })}
+                      data-testid={`edit-pay-${i}`}
+                    >
+                      Edit pay
+                    </button>
+                    <button
+                      className="btn btn--quiet btn--small"
+                      onClick={() => setSheet({ kind: 'slip', index: i })}
+                      data-testid={`view-slip-${i}`}
+                    >
+                      Payslip
+                    </button>
+                    {r.pdfUrl ? (
+                      <a
+                        className="btn btn--quiet pay-card__open"
+                        href={r.pdfUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label={`Open the PDF for ${r.employeeName}`}
+                      >
+                        ↗
+                      </a>
+                    ) : null}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Grid — desktop. Column order follows the office sheet, and
+                every figure the sheet derives is shown alongside the inputs
+                so the arithmetic can be checked at a glance. */}
+            <p className="grid-legend">
+              Shaded columns are calculated: sal/day, earned salary, OT amount,
+              total earnings, balance advance and net paid. Overtime is priced at{' '}
+              {HOURS_PER_DAY} hours to the day.
+            </p>
+            <div className="grid-scroll">
+              <table className="pay-grid">
+                <thead>
+                  <tr>
+                    <th className="pay-grid__name">Name</th>
+                    <th>Days worked</th>
+                    <th>Gross</th>
+                    <th className="pay-grid__calc">Sal / day</th>
+                    <th className="pay-grid__calc">Earned salary</th>
+                    <th>OT hrs</th>
+                    <th className="pay-grid__calc">OT amount</th>
+                    <th>Outside pay</th>
+                    <th className="pay-grid__calc">Total earnings</th>
+                    <th>Adv. pending</th>
+                    <th>Adv. deducted</th>
+                    <th className="pay-grid__calc">Balance adv.</th>
+                    <th>Att. bonus</th>
+                    <th>Phone ded.</th>
+                    <th>PF</th>
+                    <th>Bus pass</th>
+                    <th>Annual bonus</th>
+                    <th className="pay-grid__net">Net paid</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {rows.map((r, i) => (
+                    <tr key={r.id ?? `new-${i}`} data-testid={`pay-row-${i}`}>
+                      <td className="pay-grid__name">
+                        <div className="pay-grid__person">{r.employeeName}</div>
+                        <div className="pay-grid__phone">
+                          {r.phone || <span style={{ color: 'var(--danger)' }}>no phone</span>}
+                        </div>
+                      </td>
+                      <td>
+                        <Num
+                          value={r.daysWorked}
+                          max={31}
+                          onChange={(v) => patch(i, { daysWorked: v })}
+                          testId={`days-${i}`}
+                        />
+                      </td>
+                      <td>
+                        <Money
+                          value={r.grossSalary}
+                          onChange={(v) => patch(i, { grossSalary: v })}
+                          testId={`gross-${i}`}
+                        />
+                      </td>
+                      <td className="pay-grid__calc" data-testid={`perday-${i}`}>
+                        {formatRupees(derived[i].salaryPerDay)}
+                      </td>
+                      <td className="pay-grid__calc" data-testid={`earned-${i}`}>
+                        {formatRupees(derived[i].earnedSalary)}
+                      </td>
+                      <td>
+                        <Num
+                          value={r.otHours}
+                          onChange={(v) => patch(i, { otHours: v })}
+                          testId={`ot-${i}`}
+                        />
+                      </td>
+                      <td className="pay-grid__calc" data-testid={`otamt-${i}`}>
+                        {formatRupees(derived[i].otAmount)}
+                      </td>
+                      <td>
+                        <Money value={r.outsidePay} onChange={(v) => patch(i, { outsidePay: v })} />
+                      </td>
+                      <td className="pay-grid__calc" data-testid={`total-${i}`}>
+                        {formatRupees(derived[i].totalEarnings)}
+                      </td>
+                      <td>
+                        <Money
+                          value={r.advancePending}
+                          onChange={(v) => patch(i, { advancePending: v })}
+                          testId={`advpending-${i}`}
+                        />
+                      </td>
+                      <td>
+                        <Money
+                          value={r.advanceDeducted}
+                          onChange={(v) => patch(i, { advanceDeducted: v })}
+                        />
+                      </td>
+                      <td className="pay-grid__calc" data-testid={`advbal-${i}`}>
+                        {formatRupees(derived[i].balanceAdvance)}
+                      </td>
+                      <td>
+                        <Money
+                          value={r.attendanceBonus}
+                          onChange={(v) => patch(i, { attendanceBonus: v })}
+                        />
+                      </td>
+                      <td>
+                        <Money
+                          value={r.phoneDeduction}
+                          onChange={(v) => patch(i, { phoneDeduction: v })}
+                        />
+                      </td>
+                      <td>
+                        <Money
+                          value={r.pfContribution}
+                          onChange={(v) => patch(i, { pfContribution: v })}
+                        />
+                      </td>
+                      <td>
+                        <Money value={r.busPass} onChange={(v) => patch(i, { busPass: v })} />
+                      </td>
+                      <td>
+                        <Money
+                          value={r.annualBonus}
+                          onChange={(v) => patch(i, { annualBonus: v })}
+                        />
+                      </td>
+                      {/* The number that matters, with its delivery state under it. */}
+                      <td className="pay-grid__net">
+                        <span className="pay-grid__netvalue" data-testid={`net-${i}`}>
+                          {formatRupees(derived[i].netPaid)}
+                        </span>
+                        <span className="pay-grid__delivery">
+                          {r.pdfUrl ? (
+                            <a href={r.pdfUrl} target="_blank" rel="noopener noreferrer">
+                              {statusChip(r)}
+                            </a>
+                          ) : (
+                            statusChip(r)
+                          )}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
+
+      {rows.length ? (
+        <div className="pay-bar pay-bar--run">
+          <button
+            className="btn btn--primary btn--block"
+            onClick={() => send()}
+            disabled={Boolean(busy) || generated === 0}
+          >
+            {busy === 'send' ? 'Sending…' : 'Send on WhatsApp'}
+          </button>
+          <a
+            className="btn btn--outline pay-bar__icon"
+            href={`/api/payroll/${run.id}/download`}
+            aria-label="Download every payslip"
+          >
+            ⤓
+          </a>
+        </div>
+      ) : null}
     </>
   );
 }

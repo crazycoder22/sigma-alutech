@@ -227,9 +227,9 @@ export async function renderPayslip(
     width: A4.w - M * 2,
     height: 52,
     color: TINT,
-    borderColor: RULE,
-    borderWidth: 0.7,
   });
+  // Gold edge on the leading side, so the net reads as the conclusion.
+  page.drawRectangle({ x: M, y: y - 16, width: 3, height: 52, color: GOLD });
   drawTracked(page, 'NET SALARY PAID', {
     x: M + 18,
     y: y + 18,

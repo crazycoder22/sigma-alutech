@@ -93,10 +93,21 @@ test.describe('Payroll', () => {
     // Net recalculates live: 30000 gross over 30 days, 30 worked, +1200 bus pass
     await expect(page.getByTestId('net-0')).toHaveText('31,200.00');
 
+    // The sheet's derived columns are on screen, not just the inputs.
+    await expect(page.getByTestId('perday-0')).toHaveText('1,000.00');
+    await expect(page.getByTestId('earned-0')).toHaveText('30,000.00');
+    // Row 3 works 34 OT hours at 23000/30/8.5 = 90.196 an hour.
+    await expect(page.getByTestId('otamt-3')).toHaveText('3,066.67');
+    await expect(page.getByTestId('total-3')).toHaveText('28,816.67');
+    // Advance is editable and its balance is derived: 2000 pending - 1000 taken.
+    await expect(page.getByTestId('advpending-3')).toHaveValue('2000');
+    await expect(page.getByTestId('advbal-3')).toHaveText('1,000.00');
+
     // ---- edit a cell and watch the total move ----
     const before = await page.getByTestId('total-net').innerText();
     await page.getByTestId('days-0').fill('15');
     await expect(page.getByTestId('net-0')).toHaveText('16,200.00'); // 15000 + 1200
+    await expect(page.getByTestId('earned-0')).toHaveText('15,000.00');
     await expect(page.getByTestId('total-net')).not.toHaveText(before);
     await page.getByTestId('days-0').fill('30');
     await expect(page.getByTestId('net-0')).toHaveText('31,200.00');
@@ -123,9 +134,11 @@ test.describe('Payroll', () => {
       timeout: 30000,
     });
     // Seven have numbers; the eighth is skipped for the right reason.
-    await expect(page.locator('.chip-ok')).toHaveCount(7);
-    await expect(page.locator('.chip-warn')).toHaveCount(1);
-    await expect(page.locator('.chip-warn')).toHaveAttribute(
+    // Scoped to the desktop grid — the mobile cards render the same
+    // people again, hidden by CSS but still in the DOM.
+    await expect(page.locator('.pay-grid .chip-ok')).toHaveCount(7);
+    await expect(page.locator('.pay-grid .chip-warn')).toHaveCount(1);
+    await expect(page.locator('.pay-grid .chip-warn')).toHaveAttribute(
       'title',
       /No phone number/
     );
@@ -166,5 +179,79 @@ test.describe('Payroll', () => {
   test('a non-numeric run id is a 404, not a server error', async ({ page }) => {
     const res = await page.request.get('/api/payroll/not-a-number');
     expect(res.status()).toBe(404);
+  });
+
+  test('a non-numeric run id renders the not-found page, not a crash', async ({ page }) => {
+    const res = await page.goto('/admin/payroll/not-a-number');
+    expect(res?.status()).toBe(404);
+  });
+});
+
+/* The phone layout is a different set of screens, not a narrower table:
+   cards, a per-person editor, and a payslip preview. */
+test.describe('Payroll on a phone', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await login(page);
+    await cleanup(page);
+  });
+
+  test.afterEach(async ({ page }) => {
+    await cleanup(page);
+  });
+
+  test('cards, per-person editing and the payslip preview', async ({ page }) => {
+    const { run } = await (
+      await page.request.post('/api/payroll', { data: { period: PERIOD } })
+    ).json();
+    await page.goto(`/admin/payroll/${run.id}`);
+
+    await page.locator('input[type="file"]').setInputFiles(FIXTURE);
+    await expect(page.getByTestId('import-notice')).toContainText('Read 8 rows', {
+      timeout: 15000,
+    });
+    await page.getByTestId('save-draft').click();
+    await expect(page.locator('.form-success')).toContainText('Draft saved');
+
+    // One card per person, and the wide grid stays out of the way.
+    await expect(page.locator('.pay-card')).toHaveCount(8);
+    await expect(page.locator('.grid-scroll')).toBeHidden();
+    await expect(page.locator('.pay-card').nth(1)).toContainText('BHAVNA SINGH');
+
+    // ---- edit one person ----
+    await page.getByTestId('edit-pay-1').click();
+    const sheet = page.getByTestId('pay-sheet-edit');
+    await expect(sheet).toContainText('BHAVNA SINGH');
+    await expect(page.getByTestId('sheet-net')).toHaveText('Rs 39,929.00');
+
+    await page.getByTestId('sheet-days').fill('14');
+    // 39000 x 14/30 = 18,200 earned; the net band follows immediately.
+    await expect(page.getByTestId('sheet-net')).toHaveText('Rs 21,729.00');
+    await page.getByTestId('sheet-days').fill('28');
+    await expect(page.getByTestId('sheet-net')).toHaveText('Rs 39,929.00');
+
+    await page.locator('.pay-sheet__back').click();
+    await expect(page.locator('.pay-card')).toHaveCount(8);
+
+    // ---- payslip preview ----
+    await page.getByTestId('view-slip-1').click();
+    const slip = page.getByTestId('pay-sheet-slip');
+    await expect(slip).toContainText('BHAVNA SINGH');
+    await expect(slip.locator('.slip__net-value')).toHaveText('Rs 39,929.00');
+    await expect(slip).toContainText('Total earnings');
+    await expect(slip).toContainText('Total deductions');
+    await expect(page.getByRole('button', { name: 'Send to Bhavna' })).toBeVisible();
+  });
+
+  test('employees show as cards with a sticky add button', async ({ page }) => {
+    await page.goto('/admin/employees');
+    await expect(page.locator('.emp-card').first()).toBeVisible();
+    await expect(page.locator('.rec-table')).toBeHidden();
+    // The header button is hidden on a phone; the sticky bar carries it.
+    await expect(page.getByTestId('add-employee')).toBeHidden();
+    await expect(
+      page.locator('.pay-bar').getByRole('button', { name: '+ Add employee' })
+    ).toBeVisible();
+    await expect(page.locator('.emp-card').first().locator('.emp-stat')).toHaveCount(3);
   });
 });
