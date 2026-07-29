@@ -8,8 +8,8 @@ This repository holds the company's website and the office's payroll tool.
 | | |
 |---|---|
 | **App** | [`web/`](web/README.md) — Next.js 16, Postgres, Vercel Blob, custom admin, payroll |
-| **Live** | https://sigma-alutech.vercel.app · admin at `/admin` |
-| **Public domain** | `sigmaalutech.in` — **not serving anything**, cutover in progress, see [Domain cutover](web/README.md#domain-cutover-in-progress) |
+| **Live** | https://sigmaalutech.in · admin at `/admin` |
+| **Also on** | https://sigma-alutech.vercel.app (the Vercel URL, still valid) |
 | **Legacy site** | repository root (`index.html`, `css/`, `js/`, `data/`) — [documented separately](docs/legacy-static-site.md) |
 
 The app does three jobs: it publishes the product catalog and project
@@ -35,7 +35,7 @@ flowchart TB
     edge --> fn
   end
 
-  visitor --> edge
+  visitor -->|"sigmaalutech.in"| edge
   owner --> fn
 
   fn -->|"SQL over TLS · pooled"| neon[("Neon Postgres · ap-southeast-1<br/>catalog · projects · admins · payroll")]
@@ -44,8 +44,6 @@ flowchart TB
   fn -. "not connected yet" .-> wa["WhatsApp Business Cloud API"]
   wa -. "payslip PDF" .-> staff
 
-  legacy["GitHub Pages · legacy static site"]
-  visitor -->|"sigmaalutech.in"| legacy
 ```
 
 One Vercel deployment serves everything. Public pages are server-rendered per
@@ -53,7 +51,7 @@ request (`dynamic = 'force-dynamic'`), so a catalog edit appears immediately
 without a rebuild. Uploaded images are served **directly from the Blob host**
 to the browser, never proxied through the app.
 
-Two paths exist in code but carry no traffic yet, drawn dashed above:
+One path exists in code but carries no traffic yet, drawn dashed above:
 
 - **WhatsApp** — the integration is built: send, delivery webhook, per-line
   status, and a settings screen at `/admin/whatsapp` that lists what is still
@@ -63,9 +61,8 @@ Two paths exist in code but carry no traffic yet, drawn dashed above:
   business number (a personal number cannot be automated) and an approved
   message template. See
   [Connecting WhatsApp](web/README.md#connecting-whatsapp).
-- **The domain** — `sigmaalutech.in` resolves to GitHub Pages, but Pages has no
-  custom domain configured against it, so the name returns *Site not found*.
-  It is now attached to the Vercel project and waiting on DNS.
+- ~~**The domain**~~ — done. `sigmaalutech.in` and `www.` resolve to Vercel and
+  serve the app over HTTPS.
 
 ## Managed services
 
@@ -75,7 +72,7 @@ Two paths exist in code but carry no traffic yet, drawn dashed above:
 | **Neon Postgres** | `ep-twilight-sea-azrzayre-pooler…ap-southeast-1`, pooled, `sslmode=require` | `categories`, `products`, `project_categories`, `projects`, `admins`, `employees`, `payroll_runs`, `payroll_lines` |
 | **Vercel Blob** | store `sigma-alutech-blob` | uploaded photography, generated payslip PDFs |
 | **GitHub Actions** | `.github/workflows/tests.yml` | CI on every push and PR to `main` |
-| **GitHub Pages** | repository root | the legacy site on `sigmaalutech.in` |
+| **GitHub Pages** | repository root | the legacy site, now only on `crazycoder22.github.io` |
 
 Blob objects are written `access: 'public'` under `uploads/<folder>/` with
 unguessable keys. Public means *readable by URL*; writing and deleting need the
@@ -87,7 +84,7 @@ short-lived.
 
 | | Production | Preview | Local |
 |---|---|---|---|
-| Host | Vercel (`sigma-alutech.vercel.app`) | Vercel per-branch/PR URL | `next dev` on :3000 |
+| Host | Vercel (`sigmaalutech.in`) | Vercel per-branch/PR URL | `next dev` on :3000 |
 | Database | Neon `neondb` | Neon `neondb` (**same DB**) | Docker `sigma` on :55432 |
 | Images | Vercel Blob | Vercel Blob (same store) | `public/uploads/` |
 | WhatsApp | mock until configured | mock | mock |

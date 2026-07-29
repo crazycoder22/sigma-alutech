@@ -2,14 +2,13 @@
 
 The original hand-written site in the repository root: plain HTML, CSS and
 vanilla JS, content in `data/*.json`, images committed to `images/`, deployed
-by GitHub Pages. It is reachable only at `crazycoder22.github.io/sigma-alutech/`
-— `sigmaalutech.in` points at GitHub but has no custom domain configured
-against the Pages site, so that name returns *Site not found*.
+by GitHub Pages, and reachable only at `crazycoder22.github.io/sigma-alutech/`.
+`sigmaalutech.in` now serves the Next.js app.
 
 Its replacement — Next.js, Postgres, Blob, a custom admin and payroll — lives
 in [`web/`](../web/README.md). **New work belongs there.** Everything below
 applies only to the legacy site, and stops mattering the day the domain moves
-(see [Domain cutover](../web/README.md#domain-cutover-in-progress)).
+(see [Domain cutover](../web/README.md#domain-cutover-done)).
 
 ---
 
