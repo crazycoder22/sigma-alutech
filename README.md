@@ -55,11 +55,14 @@ to the browser, never proxied through the app.
 
 Two paths exist in code but carry no traffic yet, drawn dashed above:
 
-- **WhatsApp** — `WHATSAPP_PROVIDER` selects the provider. While it is not
-  `meta`, sends are simulated: validated and recorded against each payslip
-  line, delivered to nobody, and the screen says so before you press Send.
-  Going live needs a verified WhatsApp Business account, a business number (a
-  personal number cannot be automated) and an approved message template.
+- **WhatsApp** — the integration is built: send, delivery webhook, per-line
+  status, and a settings screen at `/admin/whatsapp` that lists what is still
+  missing and sends a test message. While `WHATSAPP_PROVIDER` is not `meta`,
+  sends are simulated — validated and recorded against each payslip line,
+  delivered to nobody. Going live needs a verified WhatsApp Business account, a
+  business number (a personal number cannot be automated) and an approved
+  message template. See
+  [Connecting WhatsApp](web/README.md#connecting-whatsapp).
 - **The domain** — `sigmaalutech.in` resolves to GitHub Pages, but Pages has no
   custom domain configured against it, so the name returns *Site not found*.
   It is now attached to the Vercel project and waiting on DNS.

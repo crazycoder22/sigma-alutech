@@ -47,6 +47,10 @@ jobs:
       SESSION_SECRET: ci-secret-0123456789abcdef0123456789abcdef
       SEED_ADMIN_EMAIL: admin@sigmaalutech.in
       SEED_ADMIN_PASSWORD: sigma-admin-2026
+      # Exercise the webhook's signature check; the provider stays mocked,
+      # so nothing is ever sent.
+      WHATSAPP_APP_SECRET: ci-app-secret
+      WHATSAPP_VERIFY_TOKEN: ci-verify-token
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

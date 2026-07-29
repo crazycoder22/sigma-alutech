@@ -2438,3 +2438,39 @@
   font-size: var(--fs-micro);
   color: var(--gold-hover);
 }
+
+/* ---- WhatsApp settings ---- */
+.rec-row--wa {
+  grid-template-columns: minmax(0, 2.4fr) minmax(0, 1.2fr) 130px;
+}
+
+.wa-secret,
+.wa-value {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: var(--fs-small);
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.wa-secret {
+  color: var(--text-muted);
+}
+
+.wa-url {
+  display: block;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-primary);
+  padding: 12px 14px;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: var(--fs-small);
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.panel__note {
+  font-size: var(--fs-small);
+  font-weight: var(--fw-light);
+  line-height: var(--lh-normal);
+  color: var(--text-secondary);
+  margin-bottom: 12px;
+}

@@ -268,3 +268,67 @@ test.describe('Payroll on a phone', () => {
     await expect(page.locator('.emp-card').first().locator('.emp-stat')).toHaveCount(3);
   });
 });
+
+test.describe('WhatsApp settings', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 950 });
+    await login(page);
+  });
+
+  test('says what is missing and never shows a secret', async ({ page }) => {
+    await page.goto('/admin/whatsapp');
+    await expect(page.locator('.admin-head__title')).toHaveText('WhatsApp');
+    await expect(page.getByTestId('wa-not-live')).toContainText('Sending is simulated');
+
+    // Settings with a working default read as such, not as missing.
+    await expect(page.getByTestId('wa-WHATSAPP_TEMPLATE')).toContainText('Default');
+    await expect(page.getByTestId('wa-WHATSAPP_PHONE_NUMBER_ID')).toContainText(
+      'Needed to send'
+    );
+    // The webhook secrets block delivery status, not sending.
+    await expect(page.getByTestId('wa-WHATSAPP_APP_SECRET')).toContainText(
+      'Needed for status'
+    );
+    await expect(page.getByTestId('wa-webhook-warn')).toBeVisible();
+
+    // The token row must never render a value, only whether one exists.
+    const token = page.getByTestId('wa-WHATSAPP_TOKEN');
+    await expect(token).toContainText('—');
+
+    await expect(page.getByTestId('wa-webhook')).toContainText('/api/whatsapp/webhook');
+  });
+
+  test('a test send is simulated and says so', async ({ page }) => {
+    await page.goto('/admin/whatsapp');
+    await page.getByLabel('Phone number').fill('98765 43210');
+    await page.getByRole('button', { name: 'Send test' }).click();
+    const result = page.getByTestId('wa-test-result');
+    await expect(result).toContainText('Simulated');
+    await expect(result).toContainText('919876543210');
+  });
+
+  test('a bad number is refused before anything is attempted', async ({ page }) => {
+    const res = await page.request.post('/api/whatsapp', {
+      data: { phone: '12345' },
+    });
+    const body = await res.json();
+    expect(body.ok).toBe(false);
+    expect(body.error).toMatch(/usable phone number/);
+  });
+
+  test('the settings and test endpoints reject anonymous callers', async ({ request }) => {
+    expect((await request.get('/api/whatsapp')).status()).toBe(401);
+    expect(
+      (await request.post('/api/whatsapp', { data: { phone: '9876543210' } })).status()
+    ).toBe(401);
+  });
+
+  test('the webhook refuses an unsigned callback', async ({ request }) => {
+    // Public by necessity — Meta calls it — so the signature is the gate.
+    const res = await request.post('/api/whatsapp/webhook', {
+      data: { entry: [] },
+    });
+    expect([401, 503]).toContain(res.status());
+  });
+});
+

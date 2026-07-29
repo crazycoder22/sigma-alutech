@@ -75,6 +75,7 @@ export function AdminChrome({
   const onProjects = pathname.startsWith('/admin/projects');
   const onEmployees = pathname.startsWith('/admin/employees');
   const onPayroll = pathname.startsWith('/admin/payroll');
+  const onWhatsApp = pathname.startsWith('/admin/whatsapp');
 
   async function signOut() {
     await fetch('/api/auth/logout', { method: 'POST' });
@@ -130,6 +131,12 @@ export function AdminChrome({
           >
             Staff <span className="admin-tab__count">{employeeCount}</span>
           </Link>
+          <Link
+            href="/admin/whatsapp"
+            className={`admin-tab${onWhatsApp ? ' active' : ''}`}
+          >
+            WhatsApp
+          </Link>
           <Link href="/" className="admin-tab" target="_blank">
             Site ↗
           </Link>
@@ -170,6 +177,12 @@ export function AdminChrome({
             className={`admin-side__link${onEmployees ? ' active' : ''}`}
           >
             Employees <span className="admin-side__count">{employeeCount}</span>
+          </Link>
+          <Link
+            href="/admin/whatsapp"
+            className={`admin-side__link${onWhatsApp ? ' active' : ''}`}
+          >
+            WhatsApp
           </Link>
         </nav>
 

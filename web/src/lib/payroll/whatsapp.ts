@@ -80,6 +80,133 @@ class MockProvider implements WhatsAppProvider {
   }
 }
 
+/* ---------------- configuration ---------------- */
+
+/**
+ * Which settings are present. Never returns a value — the token is a
+ * secret and the admin screen only needs to know whether it is there.
+ */
+export interface WhatsAppSetting {
+  key: string;
+  /** Explicitly present in the environment. */
+  set: boolean;
+  /** What breaks without it. */
+  need: 'live' | 'webhook' | 'optional';
+  secret: boolean;
+  hint: string;
+  /** Effective value — the default when unset. Never set for secrets. */
+  value?: string;
+  /** True when the value in use is the built-in default. */
+  isDefault?: boolean;
+}
+
+export interface WhatsAppConfigStatus {
+  provider: string;
+  live: boolean;
+  /** The delivery webhook rejects everything without an app secret. */
+  webhookReady: boolean;
+  graphVersion: string;
+  settings: WhatsAppSetting[];
+  /** Required to go live and not supplied. */
+  missing: string[];
+}
+
+const GRAPH_VERSION = process.env.WHATSAPP_GRAPH_VERSION ?? 'v21.0';
+
+export function whatsappConfigStatus(): WhatsAppConfigStatus {
+  const env = (k: string) => process.env[k] ?? '';
+
+  const plain = (
+    key: string,
+    need: WhatsAppSetting['need'],
+    hint: string,
+    fallback?: string
+  ): WhatsAppSetting => {
+    const raw = env(key);
+    return {
+      key,
+      set: Boolean(raw),
+      need,
+      secret: false,
+      hint,
+      value: raw || fallback,
+      isDefault: !raw && Boolean(fallback),
+    };
+  };
+
+  const secret = (
+    key: string,
+    need: WhatsAppSetting['need'],
+    hint: string
+  ): WhatsAppSetting => ({
+    key,
+    set: Boolean(env(key)),
+    need,
+    secret: true,
+    hint,
+  });
+
+  const settings: WhatsAppSetting[] = [
+    plain(
+      'WHATSAPP_PROVIDER',
+      'live',
+      'Set to "meta" to send for real. Anything else simulates.',
+      'mock'
+    ),
+    plain(
+      'WHATSAPP_PHONE_NUMBER_ID',
+      'live',
+      'Meta app → WhatsApp → API setup → "Phone number ID" (a number, not the phone number itself).'
+    ),
+    secret(
+      'WHATSAPP_TOKEN',
+      'live',
+      'A permanent System User access token with whatsapp_business_messaging. The temporary 24-hour token is only good for a first test.'
+    ),
+    plain(
+      'WHATSAPP_TEMPLATE',
+      'live',
+      'Name of the approved template. A template with this exact name must exist in Meta.',
+      'payslip_notification'
+    ),
+    plain(
+      'WHATSAPP_TEMPLATE_LANG',
+      'optional',
+      'Language code the template was approved under, e.g. en or en_US.',
+      'en'
+    ),
+    secret(
+      'WHATSAPP_VERIFY_TOKEN',
+      'webhook',
+      'Any string you invent. Paste the same one into Meta → WhatsApp → Configuration → Verify token.'
+    ),
+    secret(
+      'WHATSAPP_APP_SECRET',
+      'webhook',
+      'Meta app → Settings → Basic → App secret. The webhook refuses every callback without it, so delivery status never updates.'
+    ),
+  ];
+
+  const provider = (env('WHATSAPP_PROVIDER') || 'mock').toLowerCase();
+
+  // Only the settings with no usable default block going live. The
+  // provider blocks separately: it has a default, but that default
+  // simulates.
+  const missing = settings
+    .filter((s) => s.need === 'live' && !s.set && !s.isDefault)
+    .map((s) => s.key);
+  if (provider !== 'meta') missing.unshift('WHATSAPP_PROVIDER (still "' + provider + '")');
+
+  return {
+    provider,
+    live: isLiveProvider(),
+    webhookReady: Boolean(env('WHATSAPP_APP_SECRET') && env('WHATSAPP_VERIFY_TOKEN')),
+    graphVersion: GRAPH_VERSION,
+    settings,
+    missing,
+  };
+}
+
 /* ---------------- Meta WhatsApp Cloud API ---------------- */
 
 class MetaProvider implements WhatsAppProvider {
@@ -102,6 +229,9 @@ class MetaProvider implements WhatsAppProvider {
     }
     const to = normalisePhone(message.to);
     if (!to) return { ok: false, error: 'No usable phone number' };
+    if (!message.pdfUrl) {
+      return { ok: false, error: 'Payslip has not been generated yet' };
+    }
 
     // A document template: header carries the PDF, body the salary line.
     const body = {
@@ -133,9 +263,25 @@ class MetaProvider implements WhatsAppProvider {
       },
     };
 
+    // One retry, and only for the failures that are worth retrying —
+    // rate limits and Meta being briefly unwell. A rejected template or a
+    // bad number fails the same way twice.
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const result = await this.post(body);
+      if (result.ok || !result.retryable) return result.send;
+      if (attempt === 0) await new Promise((r) => setTimeout(r, 1200));
+    }
+    return { ok: false, error: 'WhatsApp did not respond after a retry' };
+  }
+
+  private async post(
+    body: unknown
+  ): Promise<{ ok: boolean; retryable: boolean; send: SendResult }> {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 15000);
     try {
       const res = await fetch(
-        `https://graph.facebook.com/v21.0/${this.phoneNumberId}/messages`,
+        `https://graph.facebook.com/${GRAPH_VERSION}/${this.phoneNumberId}/messages`,
         {
           method: 'POST',
           headers: {
@@ -143,19 +289,34 @@ class MetaProvider implements WhatsAppProvider {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify(body),
+          signal: controller.signal,
         }
       );
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const detail =
-          (data as { error?: { message?: string } }).error?.message ??
-          `HTTP ${res.status}`;
-        return { ok: false, error: detail };
+        const err = (data as { error?: { message?: string; code?: number } }).error;
+        const detail = err?.message ?? `HTTP ${res.status}`;
+        const retryable = res.status === 429 || res.status >= 500;
+        return {
+          ok: false,
+          retryable,
+          send: { ok: false, error: detail },
+        };
       }
       const id = (data as { messages?: Array<{ id?: string }> }).messages?.[0]?.id;
-      return { ok: true, providerId: id };
+      return { ok: true, retryable: false, send: { ok: true, providerId: id } };
     } catch (err) {
-      return { ok: false, error: err instanceof Error ? err.message : 'Network error' };
+      const aborted = err instanceof Error && err.name === 'AbortError';
+      return {
+        ok: false,
+        retryable: true,
+        send: {
+          ok: false,
+          error: aborted ? 'WhatsApp timed out' : 'Network error reaching WhatsApp',
+        },
+      };
+    } finally {
+      clearTimeout(timer);
     }
   }
 }

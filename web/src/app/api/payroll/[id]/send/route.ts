@@ -31,7 +31,9 @@ export async function POST(req: NextRequest, { params }: Params) {
     const provider = getWhatsAppProvider();
 
     const targets = run.lines.filter((l) =>
-      body.lineIds ? body.lineIds.includes(l.id) : l.deliveryStatus !== 'sent'
+      body.lineIds
+        ? body.lineIds.includes(l.id)
+        : !['sent', 'delivered', 'read'].includes(l.deliveryStatus)
     );
 
     let sent = 0;
@@ -60,7 +62,8 @@ export async function POST(req: NextRequest, { params }: Params) {
       });
 
       if (result.ok) {
-        await setLineDelivery(line.id, 'sent');
+        // Keep the provider's id — the delivery webhook matches on it.
+        await setLineDelivery(line.id, 'sent', null, result.providerId ?? null);
         sent++;
       } else {
         await setLineDelivery(line.id, 'failed', result.error ?? 'Send failed');
@@ -69,10 +72,11 @@ export async function POST(req: NextRequest, { params }: Params) {
     }
 
     const after = await getRun(id);
+    const reached = ['sent', 'delivered', 'read'];
     const allSent =
       after !== null &&
       after.lines.length > 0 &&
-      after.lines.every((l) => l.deliveryStatus === 'sent');
+      after.lines.every((l) => reached.includes(l.deliveryStatus));
     if (allSent) await setRunStatus(id, 'sent', { sentAt: new Date() });
 
     return {

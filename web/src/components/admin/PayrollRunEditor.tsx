@@ -181,7 +181,9 @@ export function PayrollRunEditor({ run, previousNet, whatsappLive }: Props) {
 
   const dirty = JSON.stringify(rows) !== baseline;
   const generated = rows.filter((r) => r.pdfUrl).length;
-  const sent = rows.filter((r) => r.deliveryStatus === 'sent').length;
+  const sent = rows.filter((r) =>
+    ['sent', 'delivered', 'read'].includes(r.deliveryStatus)
+  ).length;
 
   const derived = useMemo(
     () => rows.map((r) => calculatePay(r, days)),
@@ -355,7 +357,8 @@ export function PayrollRunEditor({ run, previousNet, whatsappLive }: Props) {
   async function send(lineIds?: number[]) {
     const count = lineIds
       ? lineIds.length
-      : rows.filter((r) => r.deliveryStatus !== 'sent').length;
+      : rows.filter((r) => !['sent', 'delivered', 'read'].includes(r.deliveryStatus))
+          .length;
     const warning = whatsappLive
       ? `Send ${count} payslip(s) over WhatsApp now? Employees will receive them immediately.`
       : `WhatsApp is not connected yet, so this is a simulation — no message will actually leave. Continue with ${count} payslip(s)?`;
@@ -408,6 +411,8 @@ export function PayrollRunEditor({ run, previousNet, whatsappLive }: Props) {
   }
 
   const statusLabel = (r: Row) => {
+    if (r.deliveryStatus === 'read') return 'Read';
+    if (r.deliveryStatus === 'delivered') return 'Delivered';
     if (r.deliveryStatus === 'sent') return 'Sent';
     if (r.deliveryStatus === 'failed') return 'Failed';
     if (r.deliveryStatus === 'skipped') return 'Skipped';
@@ -415,6 +420,9 @@ export function PayrollRunEditor({ run, previousNet, whatsappLive }: Props) {
   };
 
   const statusChip = (r: Row) => {
+    if (r.deliveryStatus === 'read') return <span className="chip-ok">Read</span>;
+    if (r.deliveryStatus === 'delivered')
+      return <span className="chip-ok">Delivered</span>;
     if (r.deliveryStatus === 'sent') return <span className="chip-ok">Sent</span>;
     if (r.deliveryStatus === 'failed')
       return <span className="chip-bad" title={r.deliveryError ?? ''}>Failed</span>;

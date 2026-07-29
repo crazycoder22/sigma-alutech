@@ -161,6 +161,7 @@ export type LineInput = Omit<
   | 'deliveryStatus'
   | 'deliveryError'
   | 'deliveredAt'
+  | 'providerMessageId'
 >;
 
 /** Replace a run's lines wholesale, recomputing every derived figure. */
@@ -188,10 +189,22 @@ export async function setLinePdf(lineId: number, pdfUrl: string): Promise<void> 
   await db.update(payrollLines).set({ pdfUrl }).where(eq(payrollLines.id, lineId));
 }
 
+export type DeliveryStatus =
+  | 'pending'
+  | 'sent'
+  | 'delivered'
+  | 'read'
+  | 'failed'
+  | 'skipped';
+
+/** States that mean the message reached the handset, in order. */
+const REACHED: DeliveryStatus[] = ['sent', 'delivered', 'read'];
+
 export async function setLineDelivery(
   lineId: number,
-  status: 'pending' | 'sent' | 'failed' | 'skipped',
-  error?: string | null
+  status: DeliveryStatus,
+  error?: string | null,
+  providerMessageId?: string | null
 ): Promise<void> {
   const db = getDb();
   await db
@@ -199,9 +212,43 @@ export async function setLineDelivery(
     .set({
       deliveryStatus: status,
       deliveryError: error ?? null,
-      deliveredAt: status === 'sent' ? new Date() : null,
+      deliveredAt: REACHED.includes(status) ? new Date() : null,
+      ...(providerMessageId === undefined ? {} : { providerMessageId }),
     })
     .where(eq(payrollLines.id, lineId));
+}
+
+/**
+ * Apply a status callback from the provider. Matched on the id the send
+ * returned, and only ever moves forward — callbacks can arrive out of
+ * order, and a late "delivered" must not overwrite a "read".
+ */
+export async function applyDeliveryCallback(
+  providerMessageId: string,
+  status: DeliveryStatus,
+  error?: string | null
+): Promise<boolean> {
+  const db = getDb();
+  const [line] = await db
+    .select()
+    .from(payrollLines)
+    .where(eq(payrollLines.providerMessageId, providerMessageId));
+  if (!line) return false;
+
+  const rank = (s: string) => REACHED.indexOf(s as DeliveryStatus);
+  if (status !== 'failed' && rank(status) <= rank(line.deliveryStatus)) {
+    return false;
+  }
+
+  await db
+    .update(payrollLines)
+    .set({
+      deliveryStatus: status,
+      deliveryError: error ?? null,
+      deliveredAt: REACHED.includes(status) ? (line.deliveredAt ?? new Date()) : null,
+    })
+    .where(eq(payrollLines.id, line.id));
+  return true;
 }
 
 export async function getLine(

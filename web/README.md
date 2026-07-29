@@ -205,15 +205,54 @@ drift. Each payslip line **snapshots** the employee's name, phone and gross at
 generation time, so editing or deleting someone later never rewrites a payslip
 that has already been issued.
 
-### Delivery is simulated until WhatsApp is connected
+### Connecting WhatsApp
 
-`WHATSAPP_PROVIDER` defaults to `mock`. The mock validates numbers and message
-bodies exactly like the live provider and records per-line delivery status, but
-contacts nobody, and the admin screen says so before you press Send. Going live
-needs, on Meta's side: a verified WhatsApp Business account, a business phone
-number (a personal WhatsApp number cannot be automated), and an **approved
-message template** — business-initiated messages cannot be free text. Then set
-the four `WHATSAPP_*` variables in Vercel.
+`/admin/whatsapp` is the working surface: it lists every setting, says which
+are missing, shows the webhook URL to paste into Meta, and sends a single test
+message. It never displays a secret — only whether one is present.
+
+Values go in **Vercel → Settings → Environment Variables**, not in the database:
+the access token is a credential, and preview deployments share this project's
+database. **Redeploy after changing any of them** — a running deployment keeps
+the values it was built with.
+
+`.env.example` documents where each value comes from. In short:
+
+| Variable | Where it comes from |
+|---|---|
+| `WHATSAPP_PROVIDER` | set to `meta` to stop simulating |
+| `WHATSAPP_PHONE_NUMBER_ID` | Meta app → WhatsApp → API setup |
+| `WHATSAPP_TOKEN` | a permanent System User token with `whatsapp_business_messaging` |
+| `WHATSAPP_TEMPLATE` / `_LANG` | the approved template's name and language |
+| `WHATSAPP_VERIFY_TOKEN` | any string you invent, pasted into Meta's webhook form |
+| `WHATSAPP_APP_SECRET` | Meta app → Settings → Basic; signs the delivery callbacks |
+
+**The template has to match what the code sends.** Business-initiated messages
+cannot be free text, so submit a template in the *Utility* category with a
+**document header** and three body variables, in this order:
+
+```
+Header:  Document
+Body:    Hello {{1}}, your salary statement for {{2}} is attached.
+         Net paid: Rs {{3}}. Please contact the office if anything
+         looks incorrect.
+```
+
+`{{1}}` is the employee's name, `{{2}}` the pay month, `{{3}}` the net paid.
+Change the wording freely, but keep three variables in that order — the send
+fills them positionally.
+
+**The webhook is what makes a status mean anything.** Meta accepts a message
+first and reports what became of it minutes later. Point
+`https://<host>/api/whatsapp/webhook` at Meta → WhatsApp → Configuration and
+subscribe to **messages**; each payslip line then moves *sent → delivered →
+read*, or *failed* with the reason recorded against it. Without it every line
+stops at "Sent", which only means WhatsApp took it.
+
+The webhook is public — Meta calls it, not an admin — so it refuses anything
+that is not signed with the app secret, and refuses everything if the secret is
+unset. Callbacks only ever move a line forward, so a late *delivered* cannot
+overwrite a *read*.
 
 Sending is one click today. A scheduled 6 PM run on salary day is not built yet.
 

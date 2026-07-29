@@ -150,8 +150,12 @@ export const payrollLines = pgTable('payroll_lines', {
 
   // ---- Delivery ----
   pdfUrl: text('pdf_url'),
-  deliveryStatus: text('delivery_status').notNull().default('pending'), // pending | sent | failed | skipped
+  // pending | sent | delivered | read | failed | skipped.
+  // "sent" means the provider accepted it; the later states arrive on the
+  // delivery webhook and are matched by provider_message_id.
+  deliveryStatus: text('delivery_status').notNull().default('pending'),
   deliveryError: text('delivery_error'),
+  providerMessageId: text('provider_message_id'),
   deliveredAt: timestamp('delivered_at'),
   sortOrder: integer('sort_order').notNull().default(0),
 });
