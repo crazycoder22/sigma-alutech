@@ -7,6 +7,51 @@ import {
   normalisePhone,
   whatsappConfigStatus,
 } from '@/lib/payroll/whatsapp';
+import { calculatePay, formatRupees, toPaise } from '@/lib/payroll/calc';
+import { renderPayslip } from '@/lib/payroll/pdf';
+import { saveDocument } from '@/lib/storage';
+import type { PayrollLine } from '@/db';
+
+/** Invented figures for the sample payslip. */
+const SAMPLE = {
+  daysWorked: 30,
+  grossSalary: toPaise(30000),
+  otHours: 12,
+  outsidePay: 0,
+  advancePending: 0,
+  advanceDeducted: 0,
+  attendanceBonus: 0,
+  phoneDeduction: 0,
+  pfContribution: toPaise(1454),
+  busPass: toPaise(1200),
+  annualBonus: 0,
+};
+
+/**
+ * A real payslip built from invented figures, so a test send exercises the
+ * whole path — render, store, fetched back out by the provider — rather
+ * than pointing at a placeholder that may not still exist.
+ */
+async function sampleSlip(): Promise<string> {
+  const line = {
+    id: 0,
+    runId: 0,
+    employeeId: null,
+    employeeName: 'TEST MESSAGE',
+    phone: '',
+    ...SAMPLE,
+    ...calculatePay(SAMPLE, 30),
+    pdfUrl: null,
+    deliveryStatus: 'pending',
+    deliveryError: null,
+    deliveredAt: null,
+    providerMessageId: null,
+    sortOrder: 0,
+  } as unknown as PayrollLine;
+
+  const pdf = await renderPayslip(line, '2026-01-01');
+  return saveDocument(Buffer.from(pdf), 'test', 'sample-payslip.pdf');
+}
 
 export const dynamic = 'force-dynamic';
 
@@ -20,7 +65,7 @@ export async function GET() {
 
 const testSchema = z.object({
   phone: z.string().trim().min(1),
-  /** A public PDF link; the template's header needs a document. */
+  /** Override the generated sample with a link of your own. */
   pdfUrl: z.string().url().optional(),
 });
 
@@ -42,13 +87,15 @@ export async function POST(req: NextRequest) {
     }
 
     const provider = getWhatsAppProvider();
+    const attachment = pdfUrl ?? (await sampleSlip());
+
     const result = await provider.send({
       to,
       employeeName: 'TEST MESSAGE',
-      periodLabel: 'a test',
-      netPaidLabel: '0.00',
-      pdfUrl: pdfUrl ?? 'https://sigma-alutech.vercel.app/images/logo.png',
-      pdfFilename: 'test.pdf',
+      periodLabel: 'January 2026',
+      netPaidLabel: formatRupees(calculatePay(SAMPLE, 30).netPaid),
+      pdfUrl: attachment,
+      pdfFilename: 'sample-payslip.pdf',
     });
 
     return {
@@ -56,6 +103,7 @@ export async function POST(req: NextRequest) {
       provider: provider.name,
       simulated: provider.name === 'mock',
       to,
+      pdfUrl: attachment,
     };
   });
 }
