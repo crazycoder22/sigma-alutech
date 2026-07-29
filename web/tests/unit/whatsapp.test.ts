@@ -8,6 +8,11 @@ import {
 } from '@/lib/payroll/whatsapp';
 
 const KEYS = [
+  'TWILIO_ACCOUNT_SID',
+  'TWILIO_AUTH_TOKEN',
+  'TWILIO_WHATSAPP_FROM',
+  'TWILIO_CONTENT_SID',
+  'TWILIO_STATUS_CALLBACK',
   'WHATSAPP_PROVIDER',
   'WHATSAPP_TOKEN',
   'WHATSAPP_PHONE_NUMBER_ID',
@@ -127,3 +132,45 @@ describe('configuration status', () => {
     expect(template.set).toBe(false);
   });
 });
+
+describe('twilio', () => {
+  it('is selected by name, and needs its own credentials', () => {
+    process.env.WHATSAPP_PROVIDER = 'twilio';
+    expect(getWhatsAppProvider().name).toBe('twilio');
+    expect(isLiveProvider()).toBe(false);
+
+    process.env.TWILIO_ACCOUNT_SID = 'ACxxx';
+    process.env.TWILIO_AUTH_TOKEN = 'secret';
+    expect(isLiveProvider()).toBe(false); // no sender yet
+
+    process.env.TWILIO_WHATSAPP_FROM = '+14155238886';
+    expect(isLiveProvider()).toBe(true);
+  });
+
+  it('describes twilio settings, not meta ones, when selected', () => {
+    process.env.WHATSAPP_PROVIDER = 'twilio';
+    const keys = whatsappConfigStatus().settings.map((s) => s.key);
+    expect(keys).toContain('TWILIO_ACCOUNT_SID');
+    expect(keys).toContain('TWILIO_WHATSAPP_FROM');
+    expect(keys).not.toContain('WHATSAPP_PHONE_NUMBER_ID');
+  });
+
+  it('keeps the auth token out of the response', () => {
+    process.env.WHATSAPP_PROVIDER = 'twilio';
+    process.env.TWILIO_AUTH_TOKEN = 'twilio-secret-token';
+    const status = whatsappConfigStatus();
+    const token = status.settings.find((s) => s.key === 'TWILIO_AUTH_TOKEN')!;
+    expect(token.set).toBe(true);
+    expect(token.value).toBeUndefined();
+    expect(JSON.stringify(status)).not.toContain('twilio-secret-token');
+  });
+
+  it('only counts the webhook ready once it can verify a callback', () => {
+    process.env.WHATSAPP_PROVIDER = 'twilio';
+    process.env.TWILIO_AUTH_TOKEN = 'secret';
+    expect(whatsappConfigStatus().webhookReady).toBe(false);
+    process.env.TWILIO_STATUS_CALLBACK = 'https://example.test/api/whatsapp/webhook/twilio';
+    expect(whatsappConfigStatus().webhookReady).toBe(true);
+  });
+});
+

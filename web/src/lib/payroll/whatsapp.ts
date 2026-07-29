@@ -8,8 +8,14 @@
  *
  * Selected with WHATSAPP_PROVIDER:
  *   unset / "mock"  → simulates the send, reaches nobody
- *   "meta"          → WhatsApp Cloud API (needs token + phone number id +
- *                     an approved template)
+ *   "meta"          → WhatsApp Cloud API, direct
+ *   "twilio"        → Twilio as the business solution provider
+ *
+ * Twilio and Meta reach the same network; Twilio brokers the relationship
+ * and adds a sandbox you can send from today, before Meta has verified
+ * the business. Neither removes the need for an approved template — a
+ * payslip is business-initiated, and those are never free text outside a
+ * 24-hour reply window.
  */
 
 export interface PayslipMessage {
@@ -146,13 +152,9 @@ export function whatsappConfigStatus(): WhatsAppConfigStatus {
     hint,
   });
 
-  const settings: WhatsAppSetting[] = [
-    plain(
-      'WHATSAPP_PROVIDER',
-      'live',
-      'Set to "meta" to send for real. Anything else simulates.',
-      'mock'
-    ),
+  const provider0 = (env('WHATSAPP_PROVIDER') || 'mock').toLowerCase();
+
+  const metaSettings: WhatsAppSetting[] = [
     plain(
       'WHATSAPP_PHONE_NUMBER_ID',
       'live',
@@ -187,7 +189,50 @@ export function whatsappConfigStatus(): WhatsAppConfigStatus {
     ),
   ];
 
-  const provider = (env('WHATSAPP_PROVIDER') || 'mock').toLowerCase();
+  const twilioSettings: WhatsAppSetting[] = [
+    plain(
+      'TWILIO_ACCOUNT_SID',
+      'live',
+      'Twilio console → Account Info → Account SID (starts AC).'
+    ),
+    secret(
+      'TWILIO_AUTH_TOKEN',
+      'live',
+      'Twilio console → Account Info → Auth Token. Also signs the delivery callbacks.'
+    ),
+    plain(
+      'TWILIO_WHATSAPP_FROM',
+      'live',
+      'The WhatsApp sender in E.164, e.g. +14155238886. The sandbox number works for testing.'
+    ),
+    plain(
+      'TWILIO_CONTENT_SID',
+      'optional',
+      'An approved Content template (starts HX). Without it Twilio sends plain text, which only WhatsApp\'s 24-hour session window allows — sandbox testing only, never a salary day.'
+    ),
+    plain(
+      'TWILIO_MEDIA_VARIABLE',
+      'optional',
+      'Set only if your template takes the PDF as a content variable rather than as media, e.g. "4".'
+    ),
+    plain(
+      'TWILIO_STATUS_CALLBACK',
+      'webhook',
+      'The full https URL of /api/whatsapp/webhook/twilio. Sent with every message, and the URL Twilio signs.'
+    ),
+  ];
+
+  const settings: WhatsAppSetting[] = [
+    plain(
+      'WHATSAPP_PROVIDER',
+      'live',
+      'One of "mock" (simulate), "meta" (WhatsApp Cloud API) or "twilio".',
+      'mock'
+    ),
+    ...(provider0 === 'twilio' ? twilioSettings : metaSettings),
+  ];
+
+  const provider = provider0;
 
   // Only the settings with no usable default block going live. The
   // provider blocks separately: it has a default, but that default
@@ -200,7 +245,10 @@ export function whatsappConfigStatus(): WhatsAppConfigStatus {
   return {
     provider,
     live: isLiveProvider(),
-    webhookReady: Boolean(env('WHATSAPP_APP_SECRET') && env('WHATSAPP_VERIFY_TOKEN')),
+    webhookReady:
+      provider === 'twilio'
+        ? Boolean(env('TWILIO_AUTH_TOKEN') && env('TWILIO_STATUS_CALLBACK'))
+        : Boolean(env('WHATSAPP_APP_SECRET') && env('WHATSAPP_VERIFY_TOKEN')),
     graphVersion: GRAPH_VERSION,
     settings,
     missing,
@@ -321,9 +369,116 @@ class MetaProvider implements WhatsAppProvider {
   }
 }
 
+/* ---------------- Twilio ---------------- */
+
+/**
+ * Twilio's Messages API. Two shapes:
+ *
+ *  - with TWILIO_CONTENT_SID, an approved Content template, variables
+ *    filled positionally exactly as the Meta path does;
+ *  - without it, a plain body and media — which only WhatsApp's 24-hour
+ *    session window allows, i.e. the sandbox. Good for proving the wiring,
+ *    not for a salary day.
+ */
+class TwilioProvider implements WhatsAppProvider {
+  readonly name = 'twilio';
+
+  constructor(
+    private accountSid = process.env.TWILIO_ACCOUNT_SID ?? '',
+    private authToken = process.env.TWILIO_AUTH_TOKEN ?? '',
+    private from = process.env.TWILIO_WHATSAPP_FROM ?? '',
+    private contentSid = process.env.TWILIO_CONTENT_SID ?? '',
+    private mediaVariable = process.env.TWILIO_MEDIA_VARIABLE ?? ''
+  ) {}
+
+  get configured(): boolean {
+    return Boolean(this.accountSid && this.authToken && this.from);
+  }
+
+  async send(message: PayslipMessage): Promise<SendResult> {
+    if (!this.configured) {
+      return { ok: false, error: 'Twilio is not configured' };
+    }
+    const to = normalisePhone(message.to);
+    if (!to) return { ok: false, error: 'No usable phone number' };
+    if (!message.pdfUrl) {
+      return { ok: false, error: 'Payslip has not been generated yet' };
+    }
+
+    const form = new URLSearchParams();
+    form.set('From', `whatsapp:${e164(this.from)}`);
+    form.set('To', `whatsapp:${e164(to)}`);
+
+    if (this.contentSid) {
+      const vars: Record<string, string> = {
+        '1': message.employeeName,
+        '2': message.periodLabel,
+        '3': message.netPaidLabel,
+      };
+      // A document header can be either a content variable or ordinary
+      // media, depending on how the template was built. Naming the
+      // variable index switches between them.
+      if (this.mediaVariable) vars[this.mediaVariable] = message.pdfUrl;
+      else form.set('MediaUrl', message.pdfUrl);
+      form.set('ContentSid', this.contentSid);
+      form.set('ContentVariables', JSON.stringify(vars));
+    } else {
+      form.set('Body', messageText(message));
+      form.set('MediaUrl', message.pdfUrl);
+    }
+
+    const callback = process.env.TWILIO_STATUS_CALLBACK ?? '';
+    if (callback) form.set('StatusCallback', callback);
+
+    const auth = Buffer.from(`${this.accountSid}:${this.authToken}`).toString('base64');
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 15000);
+    try {
+      const res = await fetch(
+        `https://api.twilio.com/2010-04-01/Accounts/${this.accountSid}/Messages.json`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Basic ${auth}`,
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: form.toString(),
+          signal: controller.signal,
+        }
+      );
+      const data = (await res.json().catch(() => ({}))) as {
+        sid?: string;
+        message?: string;
+        code?: number;
+      };
+      if (!res.ok) {
+        const detail = data.message ?? `HTTP ${res.status}`;
+        return { ok: false, error: data.code ? `${detail} (${data.code})` : detail };
+      }
+      return { ok: true, providerId: data.sid };
+    } catch (err) {
+      const aborted = err instanceof Error && err.name === 'AbortError';
+      return {
+        ok: false,
+        error: aborted ? 'Twilio timed out' : 'Network error reaching Twilio',
+      };
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+}
+
+/** Twilio wants E.164 with the plus; we store bare digits. */
+function e164(raw: string): string {
+  const digits = raw.replace(/\D/g, '');
+  return digits ? `+${digits}` : raw;
+}
+
 export function getWhatsAppProvider(): WhatsAppProvider {
   const choice = (process.env.WHATSAPP_PROVIDER ?? 'mock').toLowerCase();
-  return choice === 'meta' ? new MetaProvider() : new MockProvider();
+  if (choice === 'meta') return new MetaProvider();
+  if (choice === 'twilio') return new TwilioProvider();
+  return new MockProvider();
 }
 
 /** True when messages actually leave the building. */

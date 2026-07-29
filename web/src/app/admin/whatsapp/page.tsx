@@ -16,10 +16,9 @@ export default async function AdminWhatsAppPage() {
   const host = h.get('x-forwarded-host') ?? h.get('host') ?? 'localhost:3000';
   const proto = host.startsWith('localhost') ? 'http' : 'https';
 
-  return (
-    <WhatsAppSettings
-      status={whatsappConfigStatus()}
-      webhookUrl={`${proto}://${host}/api/whatsapp/webhook`}
-    />
-  );
+  const status = whatsappConfigStatus();
+  const path =
+    status.provider === 'twilio' ? '/api/whatsapp/webhook/twilio' : '/api/whatsapp/webhook';
+
+  return <WhatsAppSettings status={status} webhookUrl={`${proto}://${host}${path}`} />;
 }

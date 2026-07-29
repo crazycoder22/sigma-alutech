@@ -121,18 +121,16 @@ export function WhatsAppSettings({ status, webhookUrl }: Props) {
           </div>
           {status.webhookReady ? null : (
             <p className="panel__note" data-testid="wa-webhook-warn">
-              <strong>Not ready.</strong> Without{' '}
-              <code>WHATSAPP_APP_SECRET</code> the webhook refuses every callback,
-              so a payslip never moves past &ldquo;Sent&rdquo;.
+              <strong>Not ready.</strong> Callbacks are refused until the signing
+              secret is set, so a payslip never moves past &ldquo;Sent&rdquo;.
             </p>
           )}
           <p className="panel__note">
-            Meta reports what became of each message here — delivered, read or
-            failed. Without it, a payslip only ever reads as “Sent”, which means
-            WhatsApp accepted it, not that anyone received it. Paste this into Meta
-            → your app → WhatsApp → Configuration, subscribe to{' '}
-            <strong>messages</strong>, and use your{' '}
-            <code>WHATSAPP_VERIFY_TOKEN</code> as the verify token.
+            {status.provider === 'twilio'
+              ? 'Twilio reports what became of each message here — delivered, read or failed. Put this URL in TWILIO_STATUS_CALLBACK; it rides along on every send and is the URL Twilio signs.'
+              : 'Meta reports what became of each message here — delivered, read or failed. Paste it into Meta → your app → WhatsApp → Configuration, subscribe to messages, and use your WHATSAPP_VERIFY_TOKEN as the verify token.'}{' '}
+            Without it a payslip only ever reads as “Sent”, which means the
+            provider accepted it, not that anyone received it.
           </p>
           <code className="wa-url" data-testid="wa-webhook">
             {webhookUrl}

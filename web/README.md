@@ -241,6 +241,36 @@ Body:    Hello {{1}}, your salary statement for {{2}} is attached.
 Change the wording freely, but keep three variables in that order — the send
 fills them positionally.
 
+### Twilio instead of Meta
+
+`WHATSAPP_PROVIDER=twilio` sends through Twilio rather than talking to Meta
+directly. Both reach the same network; Twilio brokers the relationship, and its
+sandbox lets you send **today**, before Meta has verified the business — a
+recipient texts the sandbox's join code and can then receive messages.
+
+What Twilio does not do is remove the template requirement. A payslip is
+business-initiated, and WhatsApp only allows free text inside a 24-hour window
+after the recipient writes to you. So the sandbox proves the wiring; a real
+salary day still needs an approved template, submitted through Twilio's Content
+Templates instead of Meta's form.
+
+| Variable | Where it comes from |
+|---|---|
+| `TWILIO_ACCOUNT_SID` / `TWILIO_AUTH_TOKEN` | Twilio console → Account Info |
+| `TWILIO_WHATSAPP_FROM` | the sender in E.164, e.g. `+14155238886` |
+| `TWILIO_CONTENT_SID` | approved Content template, starts `HX`. Blank ⇒ plain text, sandbox only |
+| `TWILIO_MEDIA_VARIABLE` | only if the template takes the PDF as a variable rather than as media |
+| `TWILIO_STATUS_CALLBACK` | full URL of `/api/whatsapp/webhook/twilio` — Twilio signs this exact string |
+
+Delivery status arrives at `/api/whatsapp/webhook/twilio`, which validates
+Twilio's own scheme: HMAC-SHA1 over the callback URL concatenated with every
+POST field sorted by name. Same rules as the Meta webhook — refused without the
+signing secret, and a line only ever moves forward.
+
+Cost is the trade: Twilio adds a per-message fee on top of Meta's conversation
+pricing. At thirty-eight payslips a month that is pennies, so pick on
+convenience, not price.
+
 **The webhook is what makes a status mean anything.** Meta accepts a message
 first and reports what became of it minutes later. Point
 `https://<host>/api/whatsapp/webhook` at Meta → WhatsApp → Configuration and
