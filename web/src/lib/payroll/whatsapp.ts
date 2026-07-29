@@ -104,6 +104,12 @@ export interface WhatsAppSetting {
   value?: string;
   /** True when the value in use is the built-in default. */
   isDefault?: boolean;
+  /**
+   * Set when the value is present but the wrong shape — the cheapest way
+   * to tell "pasted the wrong thing" from "credentials are genuinely
+   * wrong", without ever echoing a secret.
+   */
+  malformed?: string;
 }
 
 export interface WhatsAppConfigStatus {
@@ -126,9 +132,10 @@ export function whatsappConfigStatus(): WhatsAppConfigStatus {
     key: string,
     need: WhatsAppSetting['need'],
     hint: string,
-    fallback?: string
+    fallback?: string,
+    check?: (v: string) => string | undefined
   ): WhatsAppSetting => {
-    const raw = env(key);
+    const raw = env(key).trim();
     return {
       key,
       set: Boolean(raw),
@@ -137,20 +144,48 @@ export function whatsappConfigStatus(): WhatsAppConfigStatus {
       hint,
       value: raw || fallback,
       isDefault: !raw && Boolean(fallback),
+      malformed: raw ? check?.(raw) : undefined,
     };
   };
 
   const secret = (
     key: string,
     need: WhatsAppSetting['need'],
-    hint: string
-  ): WhatsAppSetting => ({
-    key,
-    set: Boolean(env(key)),
-    need,
-    secret: true,
-    hint,
-  });
+    hint: string,
+    check?: (v: string) => string | undefined
+  ): WhatsAppSetting => {
+    const raw = env(key).trim();
+    return {
+      key,
+      set: Boolean(raw),
+      need,
+      secret: true,
+      hint,
+      malformed: raw ? check?.(raw) : undefined,
+    };
+  };
+
+  /* Shape checks. These catch the paste that went astray — the wrong
+     field, a truncated copy, an API key where an auth token belongs —
+     which otherwise surfaces only as Twilio's opaque 20003. */
+  const isAccountSid = (v: string) =>
+    /^AC[0-9a-f]{32}$/i.test(v)
+      ? undefined
+      : v.startsWith('SK')
+        ? 'That is an API Key SID (SK…), not the Account SID. The Account SID starts AC.'
+        : 'Should be "AC" followed by 32 hex characters.';
+
+  const isAuthToken = (v: string) =>
+    /^[0-9a-f]{32}$/i.test(v)
+      ? undefined
+      : v.startsWith('AC')
+        ? 'That looks like an Account SID, not the auth token.'
+        : `Should be 32 hex characters; this one is ${v.length}.`;
+
+  const isE164 = (v: string) =>
+    /^\+[1-9]\d{7,14}$/.test(v)
+      ? undefined
+      : 'Should be E.164 with the country code, e.g. +14155238886.';
 
   const provider0 = (env('WHATSAPP_PROVIDER') || 'mock').toLowerCase();
 
@@ -193,17 +228,22 @@ export function whatsappConfigStatus(): WhatsAppConfigStatus {
     plain(
       'TWILIO_ACCOUNT_SID',
       'live',
-      'Twilio console → Account Info → Account SID (starts AC).'
+      'Twilio console → Account Info → Account SID (starts AC).',
+      undefined,
+      isAccountSid
     ),
     secret(
       'TWILIO_AUTH_TOKEN',
       'live',
-      'Twilio console → Account Info → Auth Token. Also signs the delivery callbacks.'
+      'Twilio console → Account Info → Auth Token. Also signs the delivery callbacks.',
+      isAuthToken
     ),
     plain(
       'TWILIO_WHATSAPP_FROM',
       'live',
-      'The WhatsApp sender in E.164, e.g. +14155238886. The sandbox number works for testing.'
+      'The WhatsApp sender in E.164, e.g. +14155238886. The sandbox number works for testing.',
+      undefined,
+      isE164
     ),
     plain(
       'TWILIO_CONTENT_SID',

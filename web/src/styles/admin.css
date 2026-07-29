@@ -2474,3 +2474,9 @@
   color: var(--text-secondary);
   margin-bottom: 12px;
 }
+
+.wa-malformed {
+  margin-top: 4px;
+  font-size: var(--fs-small);
+  color: var(--danger);
+}

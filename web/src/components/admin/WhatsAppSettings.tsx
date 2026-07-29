@@ -87,6 +87,11 @@ export function WhatsAppSettings({ status, webhookUrl }: Props) {
                 <div>
                   <div className="rec-row__name">{s.key}</div>
                   <div className="rec__slug">{s.hint}</div>
+                  {s.malformed ? (
+                    <div className="wa-malformed" data-testid={`wa-bad-${s.key}`}>
+                      {s.malformed}
+                    </div>
+                  ) : null}
                 </div>
                 <div className="rec-row__cell">
                   {s.secret ? (
@@ -98,7 +103,9 @@ export function WhatsAppSettings({ status, webhookUrl }: Props) {
                   )}
                 </div>
                 <div className="rec-row__cell">
-                  {s.set ? (
+                  {s.malformed ? (
+                    <span className="chip-bad">Wrong shape</span>
+                  ) : s.set ? (
                     <span className="chip-ok">Set</span>
                   ) : s.isDefault ? (
                     <span className="chip-idle">Default</span>

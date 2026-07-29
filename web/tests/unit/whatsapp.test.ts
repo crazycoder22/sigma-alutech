@@ -218,3 +218,46 @@ describe('credentials pasted with stray whitespace still work', () => {
   });
 });
 
+describe('credential shape checks', () => {
+  const twilioSetting = (key: string) =>
+    whatsappConfigStatus().settings.find((s) => s.key === key)!;
+
+  beforeEach(() => {
+    process.env.WHATSAPP_PROVIDER = 'twilio';
+  });
+
+  it('accepts a well-formed pair silently', () => {
+    process.env.TWILIO_ACCOUNT_SID = 'AC' + 'a'.repeat(32);
+    process.env.TWILIO_AUTH_TOKEN = 'b'.repeat(32);
+    process.env.TWILIO_WHATSAPP_FROM = '+14155238886';
+    expect(twilioSetting('TWILIO_ACCOUNT_SID').malformed).toBeUndefined();
+    expect(twilioSetting('TWILIO_AUTH_TOKEN').malformed).toBeUndefined();
+    expect(twilioSetting('TWILIO_WHATSAPP_FROM').malformed).toBeUndefined();
+  });
+
+  it('spots the two values swapped', () => {
+    process.env.TWILIO_ACCOUNT_SID = 'b'.repeat(32);
+    process.env.TWILIO_AUTH_TOKEN = 'AC' + 'a'.repeat(32);
+    expect(twilioSetting('TWILIO_ACCOUNT_SID').malformed).toMatch(/AC/);
+    expect(twilioSetting('TWILIO_AUTH_TOKEN').malformed).toMatch(/Account SID/);
+  });
+
+  it('spots an API key used as the account sid', () => {
+    process.env.TWILIO_ACCOUNT_SID = 'SK' + 'a'.repeat(32);
+    expect(twilioSetting('TWILIO_ACCOUNT_SID').malformed).toMatch(/API Key/);
+  });
+
+  it('reports a truncated token by length, never by value', () => {
+    process.env.TWILIO_AUTH_TOKEN = 'abc123';
+    const setting = twilioSetting('TWILIO_AUTH_TOKEN');
+    expect(setting.malformed).toContain('6');
+    expect(setting.malformed).not.toContain('abc123');
+    expect(JSON.stringify(whatsappConfigStatus())).not.toContain('abc123');
+  });
+
+  it('spots a sender missing its country code', () => {
+    process.env.TWILIO_WHATSAPP_FROM = '4155238886';
+    expect(twilioSetting('TWILIO_WHATSAPP_FROM').malformed).toMatch(/E\.164/);
+  });
+});
+
