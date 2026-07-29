@@ -264,10 +264,10 @@ class MetaProvider implements WhatsAppProvider {
   readonly name = 'meta';
 
   constructor(
-    private token = process.env.WHATSAPP_TOKEN ?? '',
-    private phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID ?? '',
-    private template = process.env.WHATSAPP_TEMPLATE ?? 'payslip_notification',
-    private lang = process.env.WHATSAPP_TEMPLATE_LANG ?? 'en'
+    private token = (process.env.WHATSAPP_TOKEN ?? '').trim(),
+    private phoneNumberId = (process.env.WHATSAPP_PHONE_NUMBER_ID ?? '').trim(),
+    private template = (process.env.WHATSAPP_TEMPLATE ?? 'payslip_notification').trim(),
+    private lang = (process.env.WHATSAPP_TEMPLATE_LANG ?? 'en').trim()
   ) {}
 
   get configured(): boolean {
@@ -387,11 +387,14 @@ class TwilioProvider implements WhatsAppProvider {
   readonly name = 'twilio';
 
   constructor(
-    private accountSid = process.env.TWILIO_ACCOUNT_SID ?? '',
-    private authToken = process.env.TWILIO_AUTH_TOKEN ?? '',
-    private from = process.env.TWILIO_WHATSAPP_FROM ?? '',
-    private contentSid = process.env.TWILIO_CONTENT_SID ?? '',
-    private mediaVariable = process.env.TWILIO_MEDIA_VARIABLE ?? ''
+    // Trimmed: a credential pasted into a form or piped through a shell
+    // very often carries a trailing newline, and the failure it causes
+    // (20003, authenticate) looks nothing like whitespace.
+    private accountSid = (process.env.TWILIO_ACCOUNT_SID ?? '').trim(),
+    private authToken = (process.env.TWILIO_AUTH_TOKEN ?? '').trim(),
+    private from = (process.env.TWILIO_WHATSAPP_FROM ?? '').trim(),
+    private contentSid = (process.env.TWILIO_CONTENT_SID ?? '').trim(),
+    private mediaVariable = (process.env.TWILIO_MEDIA_VARIABLE ?? '').trim()
   ) {}
 
   get configured(): boolean {
@@ -455,8 +458,7 @@ class TwilioProvider implements WhatsAppProvider {
         code?: number;
       };
       if (!res.ok) {
-        const detail = data.message ?? `HTTP ${res.status}`;
-        return { ok: false, error: data.code ? `${detail} (${data.code})` : detail };
+        return { ok: false, error: twilioError(data, res.status) };
       }
       return { ok: true, providerId: data.sid };
     } catch (err) {
@@ -468,6 +470,33 @@ class TwilioProvider implements WhatsAppProvider {
     } finally {
       clearTimeout(timer);
     }
+  }
+}
+
+/**
+ * Twilio's own wording for a rejected credential is the single word
+ * "Authenticate", which tells an admin nothing. Spell out what to check
+ * for the failures that actually happen during setup.
+ */
+function twilioError(
+  data: { message?: string; code?: number },
+  httpStatus: number
+): string {
+  const detail = data.message ?? `HTTP ${httpStatus}`;
+  switch (data.code) {
+    case 20003:
+      return 'Twilio rejected the credentials (20003). Check TWILIO_ACCOUNT_SID starts with AC and belongs to the same project as the auth token, that the token has not been rotated, and that the account is active — a suspended or expired trial fails the same way.';
+    case 21211:
+      return 'Twilio does not recognise that number (21211).';
+    case 21606:
+    case 63007:
+      return `That sender is not a WhatsApp number (${data.code}). The sandbox sender is +14155238886; a number of your own has to be registered as a WhatsApp sender first.`;
+    case 63016:
+      return 'Outside the 24-hour window, so free text is not allowed (63016). Set TWILIO_CONTENT_SID to an approved template, or have the recipient message the sandbox again.';
+    case 63018:
+      return 'The recipient has not joined the sandbox (63018). Send its join phrase from their WhatsApp first.';
+    default:
+      return data.code ? `${detail} (${data.code})` : detail;
   }
 }
 

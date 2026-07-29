@@ -201,3 +201,20 @@ describe('nothing is reported missing once a provider is fully configured', () =
   });
 });
 
+describe('credentials pasted with stray whitespace still work', () => {
+  it('trims the twilio pair, which otherwise fails as 20003', () => {
+    process.env.WHATSAPP_PROVIDER = 'twilio';
+    process.env.TWILIO_ACCOUNT_SID = '  ACxxx\n';
+    process.env.TWILIO_AUTH_TOKEN = 'secret\n';
+    process.env.TWILIO_WHATSAPP_FROM = ' +14155238886 ';
+    expect(isLiveProvider()).toBe(true);
+  });
+
+  it('trims the meta pair too', () => {
+    process.env.WHATSAPP_PROVIDER = 'meta';
+    process.env.WHATSAPP_TOKEN = 'token\n';
+    process.env.WHATSAPP_PHONE_NUMBER_ID = ' 123456 ';
+    expect(isLiveProvider()).toBe(true);
+  });
+});
+
