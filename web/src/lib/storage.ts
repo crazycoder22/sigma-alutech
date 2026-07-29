@@ -91,12 +91,15 @@ export async function saveDocument(
 
   if (usingBlob()) {
     const { put } = await import('@vercel/blob');
+    // A payslip is somebody's salary. Blob "public" means readable by
+    // anyone holding the URL, so the URL has to be the secret: a random
+    // suffix makes it unguessable, where documents/payslips/2026-06/
+    // payslip-2026-06-<name>.pdf could be typed by anyone who knew a name.
+    // Callers delete the previous object when they replace one.
     const blob = await put(`documents/${key}`, bytes, {
       access: 'public',
       contentType,
-      // Payslips are regenerated in place when a run is re-run.
-      addRandomSuffix: false,
-      allowOverwrite: true,
+      addRandomSuffix: true,
     });
     return blob.url;
   }
@@ -107,8 +110,13 @@ export async function saveDocument(
   return `/uploads/documents/${key}`;
 }
 
-/** Best-effort delete of a previously stored image (either driver). */
-export async function deleteImage(url: string): Promise<void> {
+/**
+ * Best-effort delete of a previously stored file (either driver).
+ *
+ * Also the way a payslip URL is revoked: the old object must go, or the
+ * superseded link keeps working.
+ */
+export async function deleteStored(url: string): Promise<void> {
   try {
     if (url.startsWith('/uploads/')) {
       const rel = url.replace(/^\/+/, '');
@@ -125,3 +133,6 @@ export async function deleteImage(url: string): Promise<void> {
     // Deletion is best-effort; a dangling file is not an error for the caller.
   }
 }
+
+/** Kept for the image call sites. */
+export const deleteImage = deleteStored;

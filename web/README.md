@@ -101,6 +101,14 @@ Holds `categories`, `products`, `project_categories`, `projects`, `admins`,
 The connection pool is capped at 1 per invocation in production
 (`src/db/index.ts`) because serverless functions are short-lived.
 
+**Payslip URLs are the secret.** Blob objects are readable by anyone holding
+the URL — that is how WhatsApp fetches the attachment — so payslips are stored
+with a random suffix. Without it,
+`documents/payslips/2026-06/payslip-2026-06-<name>.pdf` could be typed by
+anyone who knew a name, and the store's host is in this README. Regenerating a
+payslip deletes the object it replaces, so the superseded link stops working
+rather than lingering with stale figures.
+
 **Vercel Blob** — store `sigma-alutech-blob`, public host
 `atzbxwqwz4wwfm9t.public.blob.vercel-storage.com`. Objects are written with
 `access: 'public'` and unguessable suffixed keys under `uploads/<folder>/`.

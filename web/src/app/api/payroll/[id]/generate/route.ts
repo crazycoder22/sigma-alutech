@@ -3,7 +3,7 @@ import { requireAdmin } from '@/lib/auth';
 import { withErrorHandling, notFound, parseId } from '@/lib/api-helpers';
 import { getRun, setLinePdf, setRunStatus } from '@/lib/payroll/store';
 import { payslipFilename, renderPayslip } from '@/lib/payroll/pdf';
-import { saveDocument } from '@/lib/storage';
+import { deleteStored, saveDocument } from '@/lib/storage';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -35,6 +35,9 @@ export async function POST(_req: NextRequest, { params }: Params) {
           'application/pdf'
         );
         await setLinePdf(line.id, url);
+        // Revoke the superseded copy, or the old link keeps working and
+        // keeps showing figures that have since changed.
+        if (line.pdfUrl && line.pdfUrl !== url) await deleteStored(line.pdfUrl);
         generated++;
       } catch (err) {
         errors.push(
