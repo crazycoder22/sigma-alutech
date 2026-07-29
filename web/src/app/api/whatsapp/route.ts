@@ -7,7 +7,13 @@ import {
   normalisePhone,
   whatsappConfigStatus,
 } from '@/lib/payroll/whatsapp';
-import { calculatePay, formatRupees, toPaise } from '@/lib/payroll/calc';
+import {
+  calculatePay,
+  formatRupees,
+  sumDeductions,
+  sumEarnings,
+  toPaise,
+} from '@/lib/payroll/calc';
 import { renderPayslip } from '@/lib/payroll/pdf';
 import { saveDocument } from '@/lib/storage';
 import type { PayrollLine } from '@/db';
@@ -96,6 +102,12 @@ export async function POST(req: NextRequest) {
       netPaidLabel: formatRupees(calculatePay(SAMPLE, 30).netPaid),
       pdfUrl: attachment,
       pdfFilename: 'sample-payslip.pdf',
+      details: {
+        daysWorked: SAMPLE.daysWorked,
+        grossLabel: formatRupees(SAMPLE.grossSalary),
+        earningsLabel: formatRupees(sumEarnings(SAMPLE, calculatePay(SAMPLE, 30))),
+        deductionsLabel: formatRupees(sumDeductions(SAMPLE)),
+      },
     });
 
     return {

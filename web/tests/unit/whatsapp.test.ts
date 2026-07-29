@@ -2,12 +2,16 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import {
   normalisePhone,
   messageText,
+  smsText,
+  isGsm7,
   getWhatsAppProvider,
   isLiveProvider,
   whatsappConfigStatus,
 } from '@/lib/payroll/whatsapp';
 
 const KEYS = [
+  'TWILIO_SMS_FROM',
+  'TWILIO_MESSAGING_SERVICE_SID',
   'TWILIO_ACCOUNT_SID',
   'TWILIO_AUTH_TOKEN',
   'TWILIO_WHATSAPP_FROM',
@@ -258,6 +262,75 @@ describe('credential shape checks', () => {
   it('spots a sender missing its country code', () => {
     process.env.TWILIO_WHATSAPP_FROM = '4155238886';
     expect(twilioSetting('TWILIO_WHATSAPP_FROM').malformed).toMatch(/E\.164/);
+  });
+});
+
+describe('sms', () => {
+  const message = {
+    to: '919876543210',
+    employeeName: 'BHAVNA SINGH',
+    periodLabel: 'June 2026',
+    netPaidLabel: '39,929.00',
+    pdfUrl: 'https://blob.example/documents/payslips/2026-06/slip-abc123.pdf',
+    pdfFilename: 'slip.pdf',
+    details: {
+      daysWorked: 28,
+      grossLabel: '39,000.00',
+      earningsLabel: '44,000.00',
+      deductionsLabel: '4,071.00',
+    },
+  };
+
+  it('carries the figures, since it cannot carry the PDF', () => {
+    const text = smsText(message);
+    expect(text).toContain('BHAVNA SINGH');
+    expect(text).toContain('June 2026');
+    expect(text).toContain('Days worked: 28');
+    expect(text).toContain('Gross: 39,000.00');
+    expect(text).toContain('Earnings: 44,000.00');
+    expect(text).toContain('Deductions: 4,071.00');
+    expect(text).toContain('Net paid: Rs 39,929.00');
+    expect(text).toContain(message.pdfUrl);
+  });
+
+  it('stays inside GSM-7, which keeps segments at 153 rather than 67', () => {
+    // A rupee sign or a curly quote here would silently double the cost
+    // of every payslip and halve the capacity of every segment.
+    const text = smsText(message);
+    expect(isGsm7(text)).toBe(true);
+    expect(text).not.toContain('\u20b9');
+  });
+
+  it('is a sane number of segments', () => {
+    const text = smsText(message);
+    const segments = Math.ceil(text.length / 153);
+    expect(segments).toBeLessThanOrEqual(3);
+  });
+
+  it('still says something useful without the detail block', () => {
+    const text = smsText({ ...message, details: undefined });
+    expect(text).toContain('Net paid: Rs 39,929.00');
+    expect(text).not.toContain('Days worked');
+  });
+
+  it('is selected by name and accepts either kind of sender', () => {
+    process.env.WHATSAPP_PROVIDER = 'sms';
+    process.env.TWILIO_ACCOUNT_SID = 'AC' + 'a'.repeat(32);
+    process.env.TWILIO_AUTH_TOKEN = 'b'.repeat(32);
+    expect(getWhatsAppProvider().name).toBe('sms');
+    expect(isLiveProvider()).toBe(false);
+
+    process.env.TWILIO_MESSAGING_SERVICE_SID = 'MG' + 'c'.repeat(32);
+    expect(isLiveProvider()).toBe(true);
+    expect(whatsappConfigStatus().missing).toEqual([]);
+  });
+
+  it('describes the DLT-aware settings when selected', () => {
+    process.env.WHATSAPP_PROVIDER = 'sms';
+    const settings = whatsappConfigStatus().settings;
+    const service = settings.find((s) => s.key === 'TWILIO_MESSAGING_SERVICE_SID')!;
+    expect(service.hint).toMatch(/DLT/);
+    expect(settings.map((s) => s.key)).not.toContain('TWILIO_CONTENT_SID');
   });
 });
 

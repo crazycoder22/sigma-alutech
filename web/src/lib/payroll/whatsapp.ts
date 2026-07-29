@@ -18,6 +18,14 @@
  * 24-hour reply window.
  */
 
+/** The figures an SMS carries, since it cannot carry the PDF itself. */
+export interface PayslipDetails {
+  daysWorked: number;
+  grossLabel: string;
+  earningsLabel: string;
+  deductionsLabel: string;
+}
+
 export interface PayslipMessage {
   /** Digits only, country code first: 919876543210 */
   to: string;
@@ -26,6 +34,8 @@ export interface PayslipMessage {
   netPaidLabel: string;
   pdfUrl: string;
   pdfFilename: string;
+  /** Present when the channel shows figures rather than attaching them. */
+  details?: PayslipDetails;
 }
 
 export interface SendResult {
@@ -58,6 +68,44 @@ export function messageText(m: PayslipMessage): string {
     `Net paid: Rs ${m.netPaidLabel}. ` +
     `Please contact the office if anything looks incorrect.`
   );
+}
+
+/**
+ * The SMS body. No attachment is possible, so the figures travel in the
+ * text and the PDF is a link.
+ *
+ * Deliberately GSM-7 only: one non-GSM character (a rupee sign, a curly
+ * quote, an en dash) switches the whole message to UCS-2, which halves
+ * the per-segment capacity from 153 to 67 and roughly doubles the cost.
+ * There is a test pinning this.
+ */
+export function smsText(m: PayslipMessage): string {
+  const d = m.details;
+  const lines = [
+    `Sigma Alutech - salary for ${m.periodLabel}`,
+    m.employeeName,
+  ];
+  if (d) {
+    lines.push(`Days worked: ${d.daysWorked}`);
+    lines.push(`Gross: ${d.grossLabel}`);
+    lines.push(`Earnings: ${d.earningsLabel}`);
+    lines.push(`Deductions: ${d.deductionsLabel}`);
+  }
+  lines.push(`Net paid: Rs ${m.netPaidLabel}`);
+  if (m.pdfUrl) lines.push(`Payslip: ${m.pdfUrl}`);
+  lines.push('Contact the office with any query.');
+  return lines.join('\n');
+}
+
+/** Characters the GSM-7 alphabet can carry. */
+const GSM7 =
+  "@\u00a3$\u00a5\u00e8\u00e9\u00f9\u00ec\u00f2\u00c7\n\u00d8\u00f8\r\u00c5\u00e5\u0394_\u03a6\u0393\u039b\u03a9\u03a0\u03a8\u03a3\u0398\u039e\u00c6\u00e6\u00df\u00c9 !\"#\u00a4%&'()*+,-./0123456789:;<=>?" +
+  "\u00a1ABCDEFGHIJKLMNOPQRSTUVWXYZ\u00c4\u00d6\u00d1\u00dc\u00a7\u00bfabcdefghijklmnopqrstuvwxyz\u00e4\u00f6\u00f1\u00fc\u00e0";
+const GSM7_EXTENDED = '^{}\\[~]|\u20ac';
+
+/** True when every character survives GSM-7, keeping segments at 153. */
+export function isGsm7(text: string): boolean {
+  return [...text].every((c) => GSM7.includes(c) || GSM7_EXTENDED.includes(c));
 }
 
 /* ---------------- mock ---------------- */
@@ -224,6 +272,34 @@ export function whatsappConfigStatus(): WhatsAppConfigStatus {
     ),
   ];
 
+  const smsSettings: WhatsAppSetting[] = [
+    plain(
+      'TWILIO_ACCOUNT_SID',
+      'live',
+      'Twilio console → Account Info → Account SID (starts AC).',
+      undefined,
+      isAccountSid
+    ),
+    secret('TWILIO_AUTH_TOKEN', 'live', 'Twilio console → Account Info → Auth Token.', isAuthToken),
+    plain(
+      'TWILIO_MESSAGING_SERVICE_SID',
+      'live',
+      'Preferred for Indian recipients: a Messaging Service carries the DLT entity and template identifiers TRAI requires. Starts MG.'
+    ),
+    plain(
+      'TWILIO_SMS_FROM',
+      'live',
+      'A sending number in E.164, used only when no Messaging Service is set.',
+      undefined,
+      isE164
+    ),
+    plain(
+      'TWILIO_STATUS_CALLBACK',
+      'webhook',
+      'Full https URL of /api/whatsapp/webhook/twilio. Delivery receipts use the same route.'
+    ),
+  ];
+
   const twilioSettings: WhatsAppSetting[] = [
     plain(
       'TWILIO_ACCOUNT_SID',
@@ -266,10 +342,14 @@ export function whatsappConfigStatus(): WhatsAppConfigStatus {
     plain(
       'WHATSAPP_PROVIDER',
       'live',
-      'One of "mock" (simulate), "meta" (WhatsApp Cloud API) or "twilio".',
+      'One of "mock" (simulate), "meta" (WhatsApp Cloud API), "twilio" (WhatsApp via Twilio) or "sms" (plain text, figures in the body).',
       'mock'
     ),
-    ...(provider0 === 'twilio' ? twilioSettings : metaSettings),
+    ...(provider0 === 'sms'
+      ? smsSettings
+      : provider0 === 'twilio'
+        ? twilioSettings
+        : metaSettings),
   ];
 
   const provider = provider0;
@@ -280,8 +360,16 @@ export function whatsappConfigStatus(): WhatsAppConfigStatus {
   const missing = settings
     .filter((s) => s.need === 'live' && !s.set && !s.isDefault)
     .map((s) => s.key);
+  // SMS needs one sender, not both.
+  if (provider0 === 'sms' && (env('TWILIO_MESSAGING_SERVICE_SID') || env('TWILIO_SMS_FROM'))) {
+    const both = ['TWILIO_MESSAGING_SERVICE_SID', 'TWILIO_SMS_FROM'];
+    for (const k of both) {
+      const i = missing.indexOf(k);
+      if (i !== -1) missing.splice(i, 1);
+    }
+  }
   // Only the simulating provider blocks going live; meta and twilio both send.
-  if (provider !== 'meta' && provider !== 'twilio') {
+  if (!['meta', 'twilio', 'sms'].includes(provider)) {
     missing.unshift(`WHATSAPP_PROVIDER (still "${provider}")`);
   }
 
@@ -289,7 +377,7 @@ export function whatsappConfigStatus(): WhatsAppConfigStatus {
     provider,
     live: isLiveProvider(),
     webhookReady:
-      provider === 'twilio'
+      provider === 'twilio' || provider === 'sms'
         ? Boolean(env('TWILIO_AUTH_TOKEN') && env('TWILIO_STATUS_CALLBACK'))
         : Boolean(env('WHATSAPP_APP_SECRET') && env('WHATSAPP_VERIFY_TOKEN')),
     graphVersion: GRAPH_VERSION,
@@ -535,6 +623,8 @@ function twilioError(
       return 'Outside the 24-hour window, so free text is not allowed (63016). Set TWILIO_CONTENT_SID to an approved template, or have the recipient message the sandbox again.';
     case 63018:
       return 'The recipient has not joined the sandbox (63018). Send its join phrase from their WhatsApp first.';
+    case 21408:
+      return 'The account is not permitted to message that country (21408). Enable the destination under Twilio → Messaging → Geo permissions.';
     default:
       return data.code ? `${detail} (${data.code})` : detail;
   }
@@ -546,10 +636,92 @@ function e164(raw: string): string {
   return digits ? `+${digits}` : raw;
 }
 
+/* ---------------- SMS (Twilio) ---------------- */
+
+/**
+ * Plain SMS through the same Twilio account. No attachment, so the
+ * figures are in the body and the payslip is a link.
+ *
+ * For Indian recipients this is subject to TRAI's DLT regime: the entity,
+ * the sender header and the template all have to be registered, and
+ * unregistered traffic is scrubbed by the carriers rather than bounced —
+ * it simply never arrives. Twilio carries the DLT identifiers through a
+ * Messaging Service, which is why TWILIO_MESSAGING_SERVICE_SID is
+ * preferred over a bare From.
+ */
+class SmsProvider implements WhatsAppProvider {
+  readonly name = 'sms';
+
+  constructor(
+    private accountSid = (process.env.TWILIO_ACCOUNT_SID ?? '').trim(),
+    private authToken = (process.env.TWILIO_AUTH_TOKEN ?? '').trim(),
+    private from = (process.env.TWILIO_SMS_FROM ?? '').trim(),
+    private messagingServiceSid = (
+      process.env.TWILIO_MESSAGING_SERVICE_SID ?? ''
+    ).trim()
+  ) {}
+
+  get configured(): boolean {
+    return Boolean(
+      this.accountSid && this.authToken && (this.from || this.messagingServiceSid)
+    );
+  }
+
+  async send(message: PayslipMessage): Promise<SendResult> {
+    if (!this.configured) return { ok: false, error: 'SMS is not configured' };
+    const to = normalisePhone(message.to);
+    if (!to) return { ok: false, error: 'No usable phone number' };
+
+    const form = new URLSearchParams();
+    form.set('To', e164(to));
+    // A Messaging Service carries the DLT registration; prefer it.
+    if (this.messagingServiceSid) form.set('MessagingServiceSid', this.messagingServiceSid);
+    else form.set('From', e164(this.from));
+    form.set('Body', smsText(message));
+
+    const callback = (process.env.TWILIO_STATUS_CALLBACK ?? '').trim();
+    if (callback) form.set('StatusCallback', callback);
+
+    const auth = Buffer.from(`${this.accountSid}:${this.authToken}`).toString('base64');
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 15000);
+    try {
+      const res = await fetch(
+        `https://api.twilio.com/2010-04-01/Accounts/${this.accountSid}/Messages.json`,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Basic ${auth}`,
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: form.toString(),
+          signal: controller.signal,
+        }
+      );
+      const data = (await res.json().catch(() => ({}))) as {
+        sid?: string;
+        message?: string;
+        code?: number;
+      };
+      if (!res.ok) return { ok: false, error: twilioError(data, res.status) };
+      return { ok: true, providerId: data.sid };
+    } catch (err) {
+      const aborted = err instanceof Error && err.name === 'AbortError';
+      return {
+        ok: false,
+        error: aborted ? 'Twilio timed out' : 'Network error reaching Twilio',
+      };
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+}
+
 export function getWhatsAppProvider(): WhatsAppProvider {
   const choice = (process.env.WHATSAPP_PROVIDER ?? 'mock').toLowerCase();
   if (choice === 'meta') return new MetaProvider();
   if (choice === 'twilio') return new TwilioProvider();
+  if (choice === 'sms') return new SmsProvider();
   return new MockProvider();
 }
 

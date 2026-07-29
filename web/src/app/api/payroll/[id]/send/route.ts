@@ -3,7 +3,12 @@ import { z } from 'zod';
 import { requireAdmin } from '@/lib/auth';
 import { withErrorHandling, notFound, parseId } from '@/lib/api-helpers';
 import { getRun, setLineDelivery, setRunStatus } from '@/lib/payroll/store';
-import { formatPeriod, formatRupees } from '@/lib/payroll/calc';
+import {
+  formatPeriod,
+  formatRupees,
+  sumDeductions,
+  sumEarnings,
+} from '@/lib/payroll/calc';
 import { payslipFilename } from '@/lib/payroll/pdf';
 import { getWhatsAppProvider, normalisePhone } from '@/lib/payroll/whatsapp';
 
@@ -59,6 +64,13 @@ export async function POST(req: NextRequest, { params }: Params) {
         netPaidLabel: formatRupees(line.netPaid),
         pdfUrl: line.pdfUrl,
         pdfFilename: payslipFilename(line.employeeName, run.period),
+        // Channels that cannot attach the PDF put the figures in the body.
+        details: {
+          daysWorked: line.daysWorked,
+          grossLabel: formatRupees(line.grossSalary),
+          earningsLabel: formatRupees(sumEarnings(line, line)),
+          deductionsLabel: formatRupees(sumDeductions(line)),
+        },
       });
 
       if (result.ok) {

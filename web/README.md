@@ -279,6 +279,32 @@ Cost is the trade: Twilio adds a per-message fee on top of Meta's conversation
 pricing. At thirty-eight payslips a month that is pennies, so pick on
 convenience, not price.
 
+### SMS instead of WhatsApp
+
+`WHATSAPP_PROVIDER=sms` sends plain text through the same Twilio account. An
+SMS cannot carry the PDF, so the figures travel in the body — name, period,
+days worked, gross, earnings, deductions, net paid — and the payslip is a link.
+
+The body is deliberately **GSM-7 only**. A single rupee sign or curly quote
+switches the whole message to UCS-2, which cuts a segment from 153 characters
+to 67 and roughly doubles the cost of every payslip. A test pins this; keep
+`Rs` rather than `₹`.
+
+> **India requires DLT registration.** Sending A2P SMS to Indian numbers falls
+> under TRAI's rules: the business entity, the sender header and each message
+> template must be registered on a DLT platform, and URLs generally have to be
+> whitelisted. Unregistered or mismatched traffic is **scrubbed by the carriers
+> rather than rejected** — it does not fail loudly, it just never arrives.
+> Twilio carries the DLT identifiers through a Messaging Service, which is why
+> `TWILIO_MESSAGING_SERVICE_SID` is preferred over a bare `TWILIO_SMS_FROM`.
+> Confirm the current requirements with Twilio before relying on this.
+
+So SMS does not avoid an approval process; it swaps Meta's business
+verification for TRAI's registration. DLT is usually the quicker of the two and
+is a one-time entity registration, but it is not nothing.
+
+Delivery receipts arrive at the same `/api/whatsapp/webhook/twilio` route.
+
 **The webhook is what makes a status mean anything.** Meta accepts a message
 first and reports what became of it minutes later. Point
 `https://<host>/api/whatsapp/webhook` at Meta → WhatsApp → Configuration and
