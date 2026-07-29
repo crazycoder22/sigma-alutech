@@ -240,7 +240,10 @@ export function whatsappConfigStatus(): WhatsAppConfigStatus {
   const missing = settings
     .filter((s) => s.need === 'live' && !s.set && !s.isDefault)
     .map((s) => s.key);
-  if (provider !== 'meta') missing.unshift('WHATSAPP_PROVIDER (still "' + provider + '")');
+  // Only the simulating provider blocks going live; meta and twilio both send.
+  if (provider !== 'meta' && provider !== 'twilio') {
+    missing.unshift(`WHATSAPP_PROVIDER (still "${provider}")`);
+  }
 
   return {
     provider,

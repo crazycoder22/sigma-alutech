@@ -174,3 +174,30 @@ describe('twilio', () => {
   });
 });
 
+describe('nothing is reported missing once a provider is fully configured', () => {
+  it('twilio', () => {
+    process.env.WHATSAPP_PROVIDER = 'twilio';
+    process.env.TWILIO_ACCOUNT_SID = 'ACxxx';
+    process.env.TWILIO_AUTH_TOKEN = 'secret';
+    process.env.TWILIO_WHATSAPP_FROM = '+14155238886';
+    const status = whatsappConfigStatus();
+    expect(status.live).toBe(true);
+    expect(status.missing).toEqual([]);
+  });
+
+  it('meta', () => {
+    process.env.WHATSAPP_PROVIDER = 'meta';
+    process.env.WHATSAPP_PHONE_NUMBER_ID = '123456';
+    process.env.WHATSAPP_TOKEN = 'secret';
+    const status = whatsappConfigStatus();
+    expect(status.live).toBe(true);
+    expect(status.missing).toEqual([]);
+  });
+
+  it('but mock is always reported as not sending', () => {
+    const status = whatsappConfigStatus();
+    expect(status.live).toBe(false);
+    expect(status.missing[0]).toContain('WHATSAPP_PROVIDER');
+  });
+});
+
