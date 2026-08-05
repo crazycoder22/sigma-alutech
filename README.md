@@ -10,7 +10,7 @@ This repository holds the company's website and the office's payroll tool.
 | **App** | [`web/`](web/README.md) — Next.js 16, Postgres, Vercel Blob, custom admin, payroll |
 | **Live** | https://sigmaalutech.in · admin at `/admin` |
 | **Also on** | https://sigma-alutech.vercel.app (the Vercel URL, still valid) |
-| **Legacy site** | repository root (`index.html`, `css/`, `js/`, `data/`) — [documented separately](docs/legacy-static-site.md) |
+| **Legacy site** | repository root — **retired**, no longer served anywhere ([documented](docs/legacy-static-site.md)) |
 
 The app does three jobs: it publishes the product catalog and project
 portfolio, it lets the owner edit both in the browser without touching code,
@@ -72,7 +72,6 @@ One path exists in code but carries no traffic yet, drawn dashed above:
 | **Neon Postgres** | `ep-twilight-sea-azrzayre-pooler…ap-southeast-1`, pooled, `sslmode=require` | `categories`, `products`, `project_categories`, `projects`, `admins`, `employees`, `payroll_runs`, `payroll_lines` |
 | **Vercel Blob** | store `sigma-alutech-blob` | uploaded photography, generated payslip PDFs |
 | **GitHub Actions** | `.github/workflows/tests.yml` | CI on every push and PR to `main` |
-| **GitHub Pages** | repository root | the legacy site, now only on `dyuthix.github.io` |
 
 Blob objects are written `access: 'public'` under `uploads/<folder>/` with
 unguessable keys. Public means *readable by URL*; writing and deleting need the

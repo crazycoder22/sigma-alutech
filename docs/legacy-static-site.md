@@ -2,8 +2,10 @@
 
 The original hand-written site in the repository root: plain HTML, CSS and
 vanilla JS, content in `data/*.json`, images committed to `images/`, deployed
-by GitHub Pages, and reachable only at `dyuthix.github.io/sigma-alutech/`.
-`sigmaalutech.in` now serves the Next.js app.
+by GitHub Pages until 2026-08-05, when Pages was disabled. **It is no longer
+served anywhere.** `sigmaalutech.in` serves the Next.js app, and these files
+remain only as history — kept because the legacy test suite still covers them,
+and deletable whenever someone wants the tidy-up.
 
 Its replacement — Next.js, Postgres, Blob, a custom admin and payroll — lives
 in [`web/`](../web/README.md). **New work belongs there.** Everything below

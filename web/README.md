@@ -330,12 +330,10 @@ domain served **nothing**. Its DNS pointed at GitHub Pages, but Pages had no
 custom domain configured against it, so the name returned GitHub's *Site not
 found* page. There was no live site to take down.
 
-Still to tidy:
-
-1. Disable GitHub Pages in the repository settings, so the legacy site cannot
-   diverge. (The root `CNAME` file is already gone.)
-2. Optionally remove the legacy site itself (root `index.html`, `css/`, `js/`,
-   `data/`, `admin/`) — the app supersedes all of it.
+GitHub Pages was disabled on 2026-08-05, so the legacy site is no longer served
+anywhere and the two cannot diverge. Its files still sit in the repository root
+and can be deleted whenever someone wants the tidy-up; nothing depends on them
+but the legacy test suite.
 
 ## Runbook
 
