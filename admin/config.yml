@@ -18,7 +18,7 @@
 
 backend:
   name: github
-  repo: crazycoder22/sigma-alutech
+  repo: Dyuthix/sigma-alutech
   branch: main
   base_url: https://sveltia-cms-auth.lakshmankamathk.workers.dev
 

@@ -139,7 +139,7 @@ describe('admin/config.yml (Decap CMS)', () => {
 
   it('parses and targets the right repo/branch', () => {
     expect(config.backend.name).toBe('github');
-    expect(config.backend.repo).toBe('crazycoder22/sigma-alutech');
+    expect(config.backend.repo).toBe('Dyuthix/sigma-alutech');
     expect(config.backend.branch).toBe('main');
   });
 

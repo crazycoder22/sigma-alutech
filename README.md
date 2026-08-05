@@ -72,7 +72,7 @@ One path exists in code but carries no traffic yet, drawn dashed above:
 | **Neon Postgres** | `ep-twilight-sea-azrzayre-pooler…ap-southeast-1`, pooled, `sslmode=require` | `categories`, `products`, `project_categories`, `projects`, `admins`, `employees`, `payroll_runs`, `payroll_lines` |
 | **Vercel Blob** | store `sigma-alutech-blob` | uploaded photography, generated payslip PDFs |
 | **GitHub Actions** | `.github/workflows/tests.yml` | CI on every push and PR to `main` |
-| **GitHub Pages** | repository root | the legacy site, now only on `crazycoder22.github.io` |
+| **GitHub Pages** | repository root | the legacy site, now only on `dyuthix.github.io` |
 
 Blob objects are written `access: 'public'` under `uploads/<folder>/` with
 unguessable keys. Public means *readable by URL*; writing and deleting need the

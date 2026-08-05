@@ -2,7 +2,7 @@
 
 The original hand-written site in the repository root: plain HTML, CSS and
 vanilla JS, content in `data/*.json`, images committed to `images/`, deployed
-by GitHub Pages, and reachable only at `crazycoder22.github.io/sigma-alutech/`.
+by GitHub Pages, and reachable only at `dyuthix.github.io/sigma-alutech/`.
 `sigmaalutech.in` now serves the Next.js app.
 
 Its replacement — Next.js, Postgres, Blob, a custom admin and payroll — lives

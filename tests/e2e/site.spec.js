@@ -95,7 +95,7 @@ test.describe('Admin (Decap CMS)', () => {
   test('admin page and config are served', async ({ page, request }) => {
     const res = await request.get('/admin/config.yml');
     expect(res.ok()).toBeTruthy();
-    expect(await res.text()).toContain('crazycoder22/sigma-alutech');
+    expect(await res.text()).toContain('Dyuthix/sigma-alutech');
     await page.goto('/admin/');
     await expect(page).toHaveTitle(/Content Manager/);
   });
