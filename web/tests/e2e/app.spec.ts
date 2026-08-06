@@ -471,3 +471,28 @@ test.describe('API guards', () => {
     expect(data.categories[0]).toHaveProperty('products');
   });
 });
+
+test.describe('Build credit', () => {
+  test('names Dyuthix as the developer, linked, on every public page', async ({ page }) => {
+    for (const path of ['/', '/products', '/projects', '/about']) {
+      await page.goto(path);
+      const credit = page.locator('.footer__credit');
+      await expect(credit).toContainText('Designed and developed by');
+      const link = credit.getByRole('link', {
+        name: 'Dyuthix Technologies Private Limited',
+      });
+      await expect(link).toHaveAttribute('href', 'https://dyuthix.com/');
+      // Opening in a new tab must not hand the opener over.
+      await expect(link).toHaveAttribute('rel', /noopener/);
+    }
+  });
+
+  test('stays separate from the client copyright', async ({ page }) => {
+    await page.goto('/');
+    // Sigma Alutech owns the business; Dyuthix only built the software.
+    await expect(page.locator('.footer__fine')).toContainText('Sigma Alutech');
+    await expect(page.locator('.footer__fine')).not.toContainText('Dyuthix');
+    await expect(page.locator('.footer__credit')).not.toContainText('©');
+  });
+});
+

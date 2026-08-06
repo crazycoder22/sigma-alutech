@@ -81,6 +81,15 @@ export function Footer() {
             © {new Date().getFullYear()} {SITE.name} · Authorized Technal Partner
           </div>
         </div>
+
+        {/* Build credit, kept clearly separate from the copyright above:
+            Dyuthix built the software, Sigma Alutech owns the business. */}
+        <div className="footer__credit">
+          Designed and developed by{' '}
+          <a href={SITE.developerUrl} target="_blank" rel="noopener noreferrer">
+            {SITE.developer}
+          </a>
+        </div>
       </div>
     </footer>
   );

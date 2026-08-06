@@ -1149,3 +1149,22 @@
   font-size: 2rem;
   margin-bottom: var(--space-sm);
 }
+
+/* Build credit. Sits under the copyright and reads quieter than it —
+   Dyuthix wrote the software, Sigma Alutech owns the business. */
+.footer__credit {
+  margin-top: var(--space-lg);
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--ink-border);
+  font-size: var(--fs-xs);
+  color: var(--text-on-ink-muted);
+}
+
+.footer__credit a {
+  color: var(--gold-on-ink);
+  transition: color var(--transition-fast);
+}
+
+.footer__credit a:hover {
+  color: var(--text-on-ink);
+}

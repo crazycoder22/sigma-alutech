@@ -3,7 +3,9 @@
 Aluminium fabrication in Bangalore — formerly Ravi Enterprises, and an
 authorized **Technal** (France) franchisee through Hydro BS India.
 
-This repository holds the company's website and the office's payroll tool.
+This repository holds the company's website and the office's payroll tool,
+built by [Dyuthix Technologies Private Limited](https://dyuthix.com/). Sigma
+Alutech owns the business and its content; Dyuthix wrote the software.
 
 | | |
 |---|---|
@@ -98,7 +100,7 @@ short-lived.
 ```
 push to main ──┬──▶ GitHub Actions ── legacy Vitest
                │                    └ web: schema push → JSON migrate → seed →
-               │                         Vitest (103) → Playwright (52)
+               │                         Vitest (103) → Playwright (54)
                └──▶ Vercel ── npm ci → next build → promote to production
 ```
 
