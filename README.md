@@ -106,21 +106,21 @@ Three things about this are worth knowing before you rely on it:
 
 1. **The two run independently.** Vercel does not wait for CI, so a red build
    can still reach production.
-2. **Vercel is not connected to GitHub at all — deploys are manual.** The
-   repository moved to the `Dyuthix` organisation on 2026-08-05 and
-   `vercel git connect` fails, because the Vercel GitHub App has not been
-   granted access to that organisation. Until someone installs it there
-   (Vercel dashboard → project → Settings → Git, or GitHub → Dyuthix →
-   Settings → GitHub Apps), **every deploy must be made by hand**:
+2. **The git integration has a history of going quiet.** It stopped deploying
+   altogether when the repository moved to the `Dyuthix` organisation on
+   2026-08-05, because the Vercel GitHub App had not been granted access there.
+   And on 2026-07-27 it silently skipped one push while deploying the ones
+   either side. Verified working again on 2026-08-06: a push produced a
+   production build three seconds later.
+
+   Both failures were silent — a push that never deploys looks exactly like one
+   that did. After pushing anything that matters:
 
    ```bash
-   cd web && vercel deploy --prod
+   cd web && vercel ls sigma-alutech    # is there a build for your commit?
+   cd web && vercel deploy --prod        # ship it by hand if not
    ```
 
-   Even before the move the integration was unreliable — on 2026-07-27 two
-   commits deployed within a minute of pushing and the next produced no build
-   at all. A missed deploy looks exactly like a successful one from outside, so
-   confirm with `vercel ls sigma-alutech` either way.
 3. **Migrations do not run during the build.** Apply schema changes from a
    workstation *before* deploying code that depends on them:
 
