@@ -98,7 +98,7 @@ short-lived.
 ```
 push to main ──┬──▶ GitHub Actions ── legacy Vitest
                │                    └ web: schema push → JSON migrate → seed →
-               │                         Vitest (60) → Playwright (47)
+               │                         Vitest (103) → Playwright (52)
                └──▶ Vercel ── npm ci → next build → promote to production
 ```
 
