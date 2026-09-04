@@ -153,6 +153,15 @@ export function WhatsAppSettings({ status, webhookUrl }: Props) {
             business account is unverified, WhatsApp only delivers to numbers added
             as recipients in the Meta app.
           </p>
+          {status.connectivityOnly ? (
+            <p className="panel__note" data-testid="wa-connectivity-only">
+              <strong>Connection test only.</strong> The configured template takes no
+              parameters, so this sends its fixed text and <em>no payslip is
+              attached</em>. Good for proving credentials, the sender and the
+              recipient all work. Point <code>WHATSAPP_TEMPLATE</code> at an approved
+              payslip template before a salary day.
+            </p>
+          ) : null}
           <div className="field" style={{ maxWidth: 320 }}>
             <label className="field__label" htmlFor="wa-phone">
               <span>Phone number</span>

@@ -305,6 +305,21 @@ is a one-time entity registration, but it is not nothing.
 
 Delivery receipts arrive at the same `/api/whatsapp/webhook/twilio` route.
 
+#### Testing before a template is approved
+
+Set `WHATSAPP_TEMPLATE=hello_world` — the sample Meta ships with every account
+— and the send drops its document header and body variables, because that
+template has neither. It carries its own fixed text and **no payslip**, which
+is enough to prove the token, the sender and the recipient all work while a
+real template is still in review. The language defaults to `en_US` for it,
+since that is how Meta approves it; getting that wrong fails with "template
+does not exist", which reads like the template is missing rather than the
+language being off by two characters.
+
+The settings screen says plainly when the configured template can only prove
+the connection. For any other parameterless template, set
+`WHATSAPP_TEMPLATE_NO_PARAMS=true`.
+
 **The webhook is what makes a status mean anything.** Meta accepts a message
 first and reports what became of it minutes later. Point
 `https://<host>/api/whatsapp/webhook` at Meta → WhatsApp → Configuration and

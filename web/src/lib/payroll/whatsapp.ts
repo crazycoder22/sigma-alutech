@@ -163,6 +163,8 @@ export interface WhatsAppSetting {
 export interface WhatsAppConfigStatus {
   provider: string;
   live: boolean;
+  /** The template takes no parameters, so no payslip is attached. */
+  connectivityOnly: boolean;
   /** The delivery webhook rejects everything without an app secret. */
   webhookReady: boolean;
   graphVersion: string;
@@ -376,6 +378,9 @@ export function whatsappConfigStatus(): WhatsAppConfigStatus {
   return {
     provider,
     live: isLiveProvider(),
+    connectivityOnly:
+      provider === 'meta' &&
+      templateIsParameterless(env('WHATSAPP_TEMPLATE') || 'payslip_notification'),
     webhookReady:
       provider === 'twilio' || provider === 'sms'
         ? Boolean(env('TWILIO_AUTH_TOKEN') && env('TWILIO_STATUS_CALLBACK'))
@@ -388,6 +393,20 @@ export function whatsappConfigStatus(): WhatsAppConfigStatus {
 
 /* ---------------- Meta WhatsApp Cloud API ---------------- */
 
+/**
+ * Templates that take no parameters at all. Meta ships `hello_world` with
+ * every new account — it has no header and no variables, so sending it
+ * with our document header and three body values is rejected outright.
+ * Useful for proving the connection before a real template is approved,
+ * so it is supported deliberately rather than left to fail.
+ */
+export function templateIsParameterless(name: string): boolean {
+  if ((process.env.WHATSAPP_TEMPLATE_NO_PARAMS ?? '').trim().toLowerCase() === 'true') {
+    return true;
+  }
+  return name.trim().toLowerCase() === 'hello_world';
+}
+
 class MetaProvider implements WhatsAppProvider {
   readonly name = 'meta';
 
@@ -395,7 +414,13 @@ class MetaProvider implements WhatsAppProvider {
     private token = (process.env.WHATSAPP_TOKEN ?? '').trim(),
     private phoneNumberId = (process.env.WHATSAPP_PHONE_NUMBER_ID ?? '').trim(),
     private template = (process.env.WHATSAPP_TEMPLATE ?? 'payslip_notification').trim(),
-    private lang = (process.env.WHATSAPP_TEMPLATE_LANG ?? 'en').trim()
+    // hello_world is approved as en_US, not en. Getting that wrong fails
+    // with "template does not exist", which reads like the template is
+    // missing rather than the language being off by two characters.
+    private lang = (
+      process.env.WHATSAPP_TEMPLATE_LANG ??
+      (templateIsParameterless(process.env.WHATSAPP_TEMPLATE ?? '') ? 'en_US' : 'en')
+    ).trim()
   ) {}
 
   get configured(): boolean {
@@ -408,7 +433,12 @@ class MetaProvider implements WhatsAppProvider {
     }
     const to = normalisePhone(message.to);
     if (!to) return { ok: false, error: 'No usable phone number' };
-    if (!message.pdfUrl) {
+
+    const bare = templateIsParameterless(this.template);
+    // Nothing is attached to a parameterless template, so a missing
+    // payslip is not a reason to refuse — the point is to prove the
+    // connection, not to deliver anything.
+    if (!bare && !message.pdfUrl) {
       return { ok: false, error: 'Payslip has not been generated yet' };
     }
 
@@ -420,25 +450,29 @@ class MetaProvider implements WhatsAppProvider {
       template: {
         name: this.template,
         language: { code: this.lang },
-        components: [
-          {
-            type: 'header',
-            parameters: [
-              {
-                type: 'document',
-                document: { link: message.pdfUrl, filename: message.pdfFilename },
-              },
-            ],
-          },
-          {
-            type: 'body',
-            parameters: [
-              { type: 'text', text: message.employeeName },
-              { type: 'text', text: message.periodLabel },
-              { type: 'text', text: message.netPaidLabel },
-            ],
-          },
-        ],
+        ...(bare
+          ? {}
+          : {
+              components: [
+                {
+                  type: 'header',
+                  parameters: [
+                    {
+                      type: 'document',
+                      document: { link: message.pdfUrl, filename: message.pdfFilename },
+                    },
+                  ],
+                },
+                {
+                  type: 'body',
+                  parameters: [
+                    { type: 'text', text: message.employeeName },
+                    { type: 'text', text: message.periodLabel },
+                    { type: 'text', text: message.netPaidLabel },
+                  ],
+                },
+              ],
+            }),
       },
     };
 
@@ -623,6 +657,10 @@ function twilioError(
       return 'Outside the 24-hour window, so free text is not allowed (63016). Set TWILIO_CONTENT_SID to an approved template, or have the recipient message the sandbox again.';
     case 63018:
       return 'The recipient has not joined the sandbox (63018). Send its join phrase from their WhatsApp first.';
+    case 132000:
+      return 'The template does not take the values we sent (132000). A payslip template needs a document header and three body variables; hello_world has neither — it only proves the connection.';
+    case 132001:
+      return 'No such template in that language (132001). Check WHATSAPP_TEMPLATE and WHATSAPP_TEMPLATE_LANG — hello_world is approved as en_US, not en.';
     case 21408:
       return 'The account is not permitted to message that country (21408). Enable the destination under Twilio → Messaging → Geo permissions.';
     default:

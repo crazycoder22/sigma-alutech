@@ -7,9 +7,11 @@ import {
   getWhatsAppProvider,
   isLiveProvider,
   whatsappConfigStatus,
+  templateIsParameterless,
 } from '@/lib/payroll/whatsapp';
 
 const KEYS = [
+  'WHATSAPP_TEMPLATE_NO_PARAMS',
   'TWILIO_SMS_FROM',
   'TWILIO_MESSAGING_SERVICE_SID',
   'TWILIO_ACCOUNT_SID',
@@ -331,6 +333,40 @@ describe('sms', () => {
     const service = settings.find((s) => s.key === 'TWILIO_MESSAGING_SERVICE_SID')!;
     expect(service.hint).toMatch(/DLT/);
     expect(settings.map((s) => s.key)).not.toContain('TWILIO_CONTENT_SID');
+  });
+});
+
+describe('parameterless templates', () => {
+  it('recognises the one Meta ships with every account', () => {
+    expect(templateIsParameterless('hello_world')).toBe(true);
+    expect(templateIsParameterless('HELLO_WORLD')).toBe(true);
+    expect(templateIsParameterless('payslip_notification')).toBe(false);
+  });
+
+  it('can be declared for any other template', () => {
+    expect(templateIsParameterless('my_ping')).toBe(false);
+    process.env.WHATSAPP_TEMPLATE_NO_PARAMS = 'true';
+    expect(templateIsParameterless('my_ping')).toBe(true);
+  });
+
+  it('flags that no payslip will be attached', () => {
+    process.env.WHATSAPP_PROVIDER = 'meta';
+    process.env.WHATSAPP_PHONE_NUMBER_ID = '123456';
+    process.env.WHATSAPP_TOKEN = 'token';
+    process.env.WHATSAPP_TEMPLATE = 'hello_world';
+
+    const status = whatsappConfigStatus();
+    expect(status.live).toBe(true);
+    // Configured and able to send, but it cannot carry a payslip.
+    expect(status.connectivityOnly).toBe(true);
+  });
+
+  it('does not flag a real payslip template', () => {
+    process.env.WHATSAPP_PROVIDER = 'meta';
+    process.env.WHATSAPP_PHONE_NUMBER_ID = '123456';
+    process.env.WHATSAPP_TOKEN = 'token';
+    process.env.WHATSAPP_TEMPLATE = 'payslip_notification';
+    expect(whatsappConfigStatus().connectivityOnly).toBe(false);
   });
 });
 
